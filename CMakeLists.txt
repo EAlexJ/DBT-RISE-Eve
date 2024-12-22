@@ -1,0 +1,11 @@
+cmake_minimum_required(VERSION 3.24)
+project(eve_sim VERSION 1.0 LANGUAGES CXX)
+cmake_policy(SET CMP0169 OLD)
+set(CMAKE_CXX_STANDARD 17)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_CXX_EXTENSIONS OFF)
+
+add_executable(${PROJECT_NAME} src/main.cpp)
+target_include_directories(${PROJECT_NAME} PRIVATE src)
+add_subdirectory(DBT-RISE-Core)
+target_link_libraries(eve_sim PRIVATE ${CONAN_LIBS} dbt-rise-core)

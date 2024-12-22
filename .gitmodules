@@ -1,0 +1,7 @@
+[submodule "DBT-RISE-Core"]
+	path = DBT-RISE-Core
+	url = https://github.com/Minres/DBT-RISE-Core.git
+[submodule "cmake-conan"]
+	path = cmake-conan
+	url = https://github.com/conan-io/cmake-conan.git
+	branch = develop2

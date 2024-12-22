@@ -1,0 +1,4 @@
+/build
+.venv
+CMakeCache.txt
+CMakeFiles

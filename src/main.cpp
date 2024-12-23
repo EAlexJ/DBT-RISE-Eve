@@ -1,2 +1,2 @@
-#include <iostream>
-int main() { std::cout << "Hello, world!" << std::endl; }
+#include <core.h>
+int main() { eve_core mycore{eve_core()}; }

@@ -1,7 +1,6 @@
 #include "core.h"
-#include "iss/vm_types.h"
+#include "util/logging.h"
 
-#include <cstdint>
 #include <fstream>
 #include <iostream>
 
@@ -23,26 +22,27 @@ uint8_t *eve_core::get_regs_base_ptr() {
 
 std::pair<uint64_t, bool> eve_core::load_file(std::string name, int type) {
   std::ifstream filestream(name);
+
   if (filestream.is_open()) {
-    std::string line;
     unsigned linenumber;
+    std::string line;
     while (filestream >> line) {
       try {
         Imem.at(linenumber) = std::stoi(line, nullptr, 16);
       } catch (std::out_of_range) {
-        std::cerr << "Access in file " << name << " at line " << linenumber
-                  << " is out of range" << std::endl;
+        CPPLOG(ERR) << "Access in file '" << name << "' at line " << linenumber
+                    << " is out of range";
         return std::make_pair(0, false);
       } catch (std::invalid_argument) {
-        std::cerr << "Invalid argument in file " << name << " at line "
-                  << linenumber << std::endl;
+        CPPLOG(ERR) << "Invalid argument in file '" << name << "' at line "
+                    << linenumber;
         return std::make_pair(0, false);
       }
       linenumber++;
     }
     return std::make_pair(0, true);
   }
-  std::cerr << "Something went wrong when opening file " << name << std::endl;
+  CPPLOG(ERR) << "Something went wrong when opening file '" << name << "'";
   return std::make_pair(0, false);
 }
 

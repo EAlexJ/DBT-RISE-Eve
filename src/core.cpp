@@ -12,7 +12,7 @@ void eve_core::reset(uint64_t addr) {
   for (int i = 0; i < 8; i++)
     *(base_ptr + i) = 0;
   reg.PC = addr;
-  reg.SP = Dmem.size();
+  reg.SP = 0;
   reg.CY = reg.SN = reg.ZE = reg.OV = false;
 }
 
@@ -24,7 +24,7 @@ std::pair<uint64_t, bool> eve_core::load_file(std::string name, int type) {
   std::ifstream filestream(name);
 
   if (filestream.is_open()) {
-    unsigned linenumber;
+    unsigned linenumber = 0;
     std::string line;
     while (filestream >> line) {
       try {

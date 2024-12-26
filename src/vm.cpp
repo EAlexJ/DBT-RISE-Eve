@@ -1,10 +1,12 @@
 #include "vm.h"
 #include "core.h"
 #include "eve.h"
+#include "iss/interp/vm_base.h"
 #include "iss/vm_if.h"
 #include "iss/vm_types.h"
 #include "util/ities.h"
 #include "util/logging.h"
+#include <array>
 #include <cassert>
 #include <cstdint>
 #include <iostream>
@@ -27,7 +29,7 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start,
                                          uint64_t icount_limit) {
   int instr_count = 0;
   while (instr_count < icount_limit) {
-    uint8_t opcode = 0; // incase decoding goes wrong this defaults to nop
+    uint8_t opcode = op::ILLEGAL; // incase decoding goes wrong
     auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH, 0,
                                core.reg.PC, 1, &opcode);
     assert(read_succ == iss::Ok);
@@ -38,6 +40,32 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start,
       uint8_t regD = bit_sub<0, 3>(opcode);
       this->get_reg(regD) = this->get_reg(regS);
       core.reg.PC += 1;
+      break;
+    }
+    case op::LD: {
+      std::array<uint8_t, 2> msb_lsb;
+      auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH, 0,
+                                 core.reg.PC + 1, 2, msb_lsb.data());
+      assert(read_succ == iss::Ok);
+      uint8_t regD = bit_sub<0, 3>(opcode);
+      auto write_succ = core.read(address_type::PHYSICAL, access_type::READ, 0,
+                                  (msb_lsb.at(0) << 8) | msb_lsb.at(1), 1,
+                                  &(this->get_reg(regD)));
+      assert(write_succ == iss::Ok);
+      core.reg.PC += 3;
+      break;
+    }
+    case op::ST: {
+      std::array<uint8_t, 2> msb_lsb;
+      auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH, 0,
+                                 core.reg.PC + 1, 2, msb_lsb.data());
+      assert(read_succ == iss::Ok);
+      uint8_t regS = bit_sub<0, 3>(opcode);
+      auto write_succ = core.write(address_type::PHYSICAL, access_type::READ, 0,
+                                   (msb_lsb.at(0) << 8) | msb_lsb.at(1), 1,
+                                   &(this->get_reg(regS)));
+      assert(write_succ == iss::Ok);
+      core.reg.PC += 3;
       break;
     }
     case op::MOVI: {
@@ -54,8 +82,7 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start,
     case op::ADD: {
       uint16_t res =
           static_cast<uint16_t>(core.reg.A) + static_cast<uint16_t>(core.reg.B);
-      bool CY = (static_cast<uint16_t>(core.reg.A) +
-                 static_cast<uint16_t>(core.reg.B)) > 0xFF;
+      bool CY = res > 0xFF;
       bool SN = (res & 0x80) != 0;
       bool ZE = (res == 0);
       bool OV = ((static_cast<int8_t>(core.reg.A) > 0 &&
@@ -77,64 +104,27 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start,
       core.reg.PC += 1;
       break;
     }
+    case op::GOTOXY: {
+      uint16_t new_pc = (core.reg.X << 8) + core.reg.Y;
+      if (static_cast<bool>(cond & finish_cond_e::JUMP_TO_SELF)) {
+        CPPLOG(INFO) << "Jump to self, exiting";
+        throw simulation_stopped(0);
+      }
+      core.reg.PC = new_pc;
+      break;
+    }
     case op::OUT: {
       uint8_t dest = 0;
       auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH, 0,
                                  core.reg.PC + 1, 1, &dest);
       assert(read_succ == iss::Ok);
-      // Why does printing payload print an empty char if gdb says its a val?
-      // Why do I need to cast it wider than the type actually is in order for it to work?
-      auto payload = this->get_reg_val<reg_t>(dest);
-      CPPLOG(INFO) << "OUT sent: " << (uint16_t)core.reg.A << " to I/O Port "
-                   << std::hex << "0x" << (uint16_t)dest << std::dec << " "
-                   << payload;
+      CPPLOG(INFO) << "I/O Port " << std::hex << "0x" << (unsigned)dest
+                   << std::dec << " sent: " << (unsigned)core.reg.A;
       core.reg.PC += 2;
       break;
     }
-    /*
-    case op::LD : {
-        CPPLOG(INFO) << "Instruction not yet implemented";
-        break;
-      }
-    case op::ST: {
-      CPPLOG(INFO) << "Instruction not yet implemented";
-      break;
-    }
-    case op::PUSH: {
-      CPPLOG(INFO) << "Instruction not yet implemented";
-      break;
-    }
-    case op::POP: {
-      CPPLOG(INFO) << "Instruction not yet implemented";
-      break;
-    }
-    case op::CMP: {
-      CPPLOG(INFO) << "Instruction not yet implemented";
-      break;
-    }
-    case op::BRANCH: {
-      CPPLOG(INFO) << "Instruction not yet implemented";
-      break;
-    }
-    case op::CLR: {
-      CPPLOG(INFO) << "Instruction not yet implemented";
-      break;
-    }
-    case op::CALL: {
-      CPPLOG(INFO) << "Instruction not yet implemented";
-      break;
-    }
-    case op::RET: {
-      CPPLOG(INFO) << "Instruction not yet implemented";
-      break;
-    }
-    case op::GOTOXY: {
-      CPPLOG(INFO) << "Instruction not yet implemented";
-      break;
-    }
-  */
     default: {
-      CPPLOG(ERR) << "Unknown Instruction";
+      CPPLOG(ERR) << "Illegal Instruction, stopping";
       throw simulation_stopped(1);
       break;
     }

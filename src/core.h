@@ -85,7 +85,8 @@ template <> struct arch::traits<eve_core> {
     GOTOXY,
     NOP,
     IN,
-    OUT
+    OUT,
+    ILLEGAL
   };
   using reg_t = uint8_t;
   using addr_t = uint16_t;

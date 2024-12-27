@@ -14,7 +14,6 @@ struct eve_core;
 
 // the traits struct is needed to instantiate the vm
 template <> struct arch::traits<eve_core> {
-  // members after OV are needed for the tcc vm
   enum reg_e {
     A,
     B,
@@ -30,11 +29,10 @@ template <> struct arch::traits<eve_core> {
     SN,
     ZE,
     OV,
+    // members starting here are needed for the tcc vm
     ICOUNT,
     NEXT_PC,
     LAST_BRANCH,
-    TRAP_STATE,
-    PENDING_TRAP,
     NUM_REGS
   };
   enum opcode_e {
@@ -80,10 +78,10 @@ template <> struct arch::traits<eve_core> {
   using code_word_t = uint32_t;
   using virt_addr_t = typed_addr_t<address_type::PHYSICAL>;
   using phys_addr_t = typed_addr_t<address_type::PHYSICAL>;
-  static constexpr std::array<uint32_t, 19> reg_bit_widths{
-      8, 8, 8, 8, 8, 8, 8, 8, 16, 16, 1, 1, 1, 1, 8, 2, 1, 1, 1};
-  static constexpr std::array<uint32_t, 19> reg_byte_offsets{
-      0, 1, 2, 3, 4, 5, 6, 7, 9, 11, 12, 13, 14, 15, 16, 20, 22, 23, 24};
+  static constexpr std::array<uint32_t, 17> reg_bit_widths{
+      8, 8, 8, 8, 8, 8, 8, 8, 16, 16, 1, 1, 1, 1, 64, 16, 8};
+  static constexpr std::array<uint32_t, 17> reg_byte_offsets{
+      0, 1, 2, 3, 4, 5, 6, 7, 9, 11, 12, 13, 14, 15, 16, 24, 26};
   enum sreg_flag_e { FLAGS };
   enum mem_type_e { MEM, IMEM };
 };
@@ -101,15 +99,13 @@ struct eve_core : public arch_if {
     uint8_t M2 = 0;
     uint16_t PC = 0;
     uint16_t SP = 0;
-    bool CY = 0;
-    bool SN = 0;
-    bool ZE = 0;
-    bool OV = 0;
+    uint8_t CY = 0;
+    uint8_t SN = 0;
+    uint8_t ZE = 0;
+    uint8_t OV = 0;
     uint64_t ICOUNT;
     uint16_t NEXT_PC;
     uint8_t LAST_BRANCH;
-    uint8_t TRAP_STATE;
-    uint8_t PENDING_TRAP;
   } reg;
 #pragma pack(pop)
 
@@ -132,10 +128,11 @@ struct eve_core : public arch_if {
   iss::sync_type needed_sync() const { return iss::NO_SYNC; }
 
   // further core definitions needed to instantiate the tcc vm
-  inline bool should_stop();
-  inline uint64_t stop_code();
-  inline uint64_t get_icount();
+  inline bool should_stop() { return exit_code; };
+  inline uint64_t stop_code() { return exit_code; };
+  uint64_t exit_code = 0;
+
+  //this dependency could be eliminated using constexpr if in the vm_base
   iss::arch::traits<eve_core>::phys_addr_t virt2phys(const iss::addr_t &addr);
-  inline uint32_t get_last_branch();
 };
 #endif

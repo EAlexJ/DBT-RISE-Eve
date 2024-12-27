@@ -66,3 +66,8 @@ status eve_core::write(const address_type type, const access_type access,
   std::copy(data, data + length, Dmem.data() + (addr % Dmem.size()));
   return iss::Ok;
 };
+
+iss::arch::traits<eve_core>::phys_addr_t
+eve_core::virt2phys(const iss::addr_t &addr) {
+  return addr;
+};

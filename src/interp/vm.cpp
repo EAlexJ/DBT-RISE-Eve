@@ -27,7 +27,7 @@ eve_vm::eve_vm()
 
 eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start,
                                          uint64_t icount_limit) {
-  int instr_count = 0;
+  auto &instr_count = get_reg<uint64_t>(reg_e::ICOUNT);
   while (instr_count < icount_limit) {
     uint8_t opcode = op::ILLEGAL; // incase decoding goes wrong
     auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH, 0,

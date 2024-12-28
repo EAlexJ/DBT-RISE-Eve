@@ -1,6 +1,5 @@
 #include "vm.h"
 #include "core.h"
-#include "eve.h"
 #include "iss/interp/vm_base.h"
 #include "iss/vm_if.h"
 #include "iss/vm_types.h"

@@ -1,13 +1,12 @@
-#ifndef EVE_H
-#define EVE_H
+#ifndef INSTRS_H
+#define INSTRS_H
 #include "iss/arch/traits.h"
 #include <core.h>
 #include <cstdint>
 #include <iss/instruction_decoder.h>
-#include <tuple>
 
 using op = arch::traits<eve_core>::opcode_e;
-static constexpr std::array<generic_instruction_descriptor, 35> eve_instr_info{{
+static constexpr std::array<generic_instruction_descriptor, 8> eve_instr_info{{
 
     // Missing Instructions are:
     // PUSH, POP, CMP, BRANCH, CLR, CAL, RET, LDM, STM, LDCODE, LDSP, AND, OR, XOR, NOT, ADDC, SUB, SUBC, NEG, CLR, SHL, SHLC, SHR, SHRC, INCR, DECR, ADD16, IN

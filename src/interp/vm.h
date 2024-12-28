@@ -4,9 +4,8 @@
 #include "core.h"
 #include "iss/interp/vm_base.h"
 #include "iss/vm_plugin.h"
-#include <eve.h>
+#include <instrs.h>
 #include <iss/instruction_decoder.h>
-#include <memory>
 #include <vector>
 using namespace iss::interp;
 using namespace iss::debugger;

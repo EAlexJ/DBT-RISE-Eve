@@ -106,7 +106,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start,
     }
     case op::GOTOXY: {
       uint16_t new_pc = (core.reg.X << 8) + core.reg.Y;
-      if (static_cast<bool>(cond & finish_cond_e::JUMP_TO_SELF)) {
+      if (static_cast<bool>(cond & finish_cond_e::JUMP_TO_SELF) &&
+          new_pc == core.reg.PC) {
         CPPLOG(INFO) << "Jump to self, exiting";
         throw simulation_stopped(0);
       }

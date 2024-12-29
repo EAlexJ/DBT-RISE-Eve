@@ -49,11 +49,11 @@ std::pair<uint64_t, bool> eve_core::load_file(std::string name, int type) {
 status eve_core::read(const address_type type, const access_type access,
                       const uint32_t space, const uint64_t addr,
                       const unsigned length, uint8_t *const data) {
-  if (access == iss::access_type::READ) {
+  if (space == arch::traits<eve_core>::mem_type_e::DMEM) {
     for (int i = 0; i < length; i++)
       *(data + i) = Dmem.at((addr + i) % Dmem.size());
     return iss::Ok;
-  } else if (access == iss::access_type::FETCH) {
+  } else if (space == arch::traits<eve_core>::mem_type_e::IMEM) {
     for (int i = 0; i < length; i++)
       *(data + i) = Imem.at((addr + i) % Imem.size());
     return iss::Ok;

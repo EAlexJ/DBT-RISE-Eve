@@ -1,19 +1,16 @@
 #ifndef EVE_VM_H
 #define EVE_VM_H
 
-#include "core.h"
-#include "iss/interp/vm_base.h"
-#include "iss/vm_plugin.h"
-#include <instrs.h>
+#include <core.h>
 #include <iss/instruction_decoder.h>
-#include <vector>
-using namespace iss::interp;
-using namespace iss::debugger;
-struct eve_vm : public vm_base<eve_core> {
-  virt_addr_t execute_inst(finish_cond_e cond, virt_addr_t start,
+#include <iss/interp/vm_base.h>
+
+struct eve_vm : public iss::interp::vm_base<eve_core> {
+  virt_addr_t execute_inst(iss::finish_cond_e cond, virt_addr_t start,
                            uint64_t icount_limit) override;
-  target_adapter_if *accquire_target_adapter(server_if *srv) override;
-  decoder local_decoder;
+  iss::debugger::target_adapter_if *
+  accquire_target_adapter(iss::debugger::server_if *srv) override;
+  iss::decoder local_decoder;
   eve_vm();
 };
 #endif

@@ -1,11 +1,13 @@
-#include "core.h"
-#include "iss/arch/traits.h"
-#include "iss/vm_types.h"
-#include "util/logging.h"
+#include <core.h>
+#include <iss/arch/traits.h>
+#include <iss/vm_types.h>
+#include <util/logging.h>
 
 #include <cassert>
 #include <fstream>
 #include <iostream>
+
+using namespace iss;
 
 eve_core::eve_core() {}
 eve_core::~eve_core() {}

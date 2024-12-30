@@ -1,34 +1,32 @@
 
-
-#include "vm.h"
-#include "core.h"
-#include "iss/interp/vm_base.h"
-#include "iss/vm_if.h"
-#include "iss/vm_types.h"
-#include "util/ities.h"
-#include "util/logging.h"
 #include <array>
 #include <cassert>
+#include <core.h>
 #include <cstdint>
+#include <instrs.h>
 #include <iostream>
-#include <ratio>
-#include <sys/types.h>
+#include <iss/interp/vm_base.h>
+#include <iss/vm_if.h>
+#include <iss/vm_types.h>
+#include <util/logging.h>
+#include <vm.h>
 
 using namespace iss;
 using op = arch::traits<eve_core>::opcode_e;
 using super = typename iss::interp::vm_base<eve_core>;
 using traits = arch::traits<eve_core>;
 
-struct memory_access_exception : public std::exception{
-    memory_access_exception(){}
+struct memory_access_exception : public std::exception {
+  memory_access_exception() {}
 };
 
-void print_eve_out(int port, int val){
-        CPPLOG(INFO) << "I/O Port " << std::hex << "0x" << port
-                   << std::dec << " sent: " << val;
+void print_eve_out(int port, int val) {
+  CPPLOG(INFO) << "I/O Port " << std::hex << "0x" << port << std::dec
+               << " sent: " << val;
 }
 
-target_adapter_if *eve_vm::accquire_target_adapter(server_if *srv) {
+debugger::target_adapter_if *
+eve_vm::accquire_target_adapter(debugger::server_if *srv) {
   return nullptr;
 };
 eve_vm::eve_vm()

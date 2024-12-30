@@ -51,7 +51,7 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start,
                                  *PC + i, 1, &cur_read);
       instr |= cur_read;
       instr_index = local_decoder.decode_instr(instr);
-      if (instr_index == std::numeric_limits<uint32_t>::max())
+      if (instr_index == DECODING_FAIL)
         instr = instr << 8;
       else
         break;

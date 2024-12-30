@@ -1,4 +1,5 @@
 /build
 .venv
+/CMakeFiles
 CMakeCache.txt
-CMakeFiles
+CMakeUserPresets.json

@@ -8,7 +8,7 @@
             "name": "(gdb) Launch",
             "type": "cppdbg",
             "request": "launch",
-            "program": "${workspaceFolder}/build/Debug/eve_sim",
+            "program": "${workspaceFolder}/build/Debug/eve_sim_interp",
             "args": ["example_programs/1+1.hex"],
             "stopAtEntry": false,
             "cwd": "${workspaceFolder}",

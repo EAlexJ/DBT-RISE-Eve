@@ -13,9 +13,3 @@ add_subdirectory(DBT-RISE-Core)
 add_executable(eve_sim_interp ${COMMON_SOURCES} src/interp/vm.cpp)
 target_include_directories(eve_sim_interp PRIVATE ${COMMON_INCLUDE_DIR} src/interp/)
 target_link_libraries(eve_sim_interp PRIVATE ${CONAN_LIBS} dbt-rise-core)
-
-add_executable(eve_sim_tcc ${COMMON_SOURCES} src/tcc/vm.cpp)
-target_include_directories(eve_sim_tcc PRIVATE ${COMMON_INCLUDE_DIR} src/tcc/)
-target_link_libraries(eve_sim_tcc PRIVATE ${CONAN_LIBS} dbt-rise-core)
-
-

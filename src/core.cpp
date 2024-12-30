@@ -1,6 +1,9 @@
 #include "core.h"
+#include "iss/arch/traits.h"
+#include "iss/vm_types.h"
 #include "util/logging.h"
 
+#include <cassert>
 #include <fstream>
 #include <iostream>
 
@@ -57,6 +60,8 @@ status eve_core::read(const address_type type, const access_type access,
       *(data + i) = Dmem.at((addr + i) % Dmem.size());
     return iss::Ok;
   } else if (space == arch::traits<eve_core>::mem_type_e::IMEM) {
+    assert(access == access_type::FETCH &&
+           "Invalid read from IMEM, can only Fetch from Instruction Memory");
     for (int i = 0; i < length; i++)
       *(data + i) = Imem.at((addr + i) % Imem.size());
     return iss::Ok;
@@ -66,6 +71,8 @@ status eve_core::read(const address_type type, const access_type access,
 status eve_core::write(const address_type type, const access_type access,
                        const uint32_t space, const uint64_t addr,
                        const unsigned length, const uint8_t *const data) {
+  assert(space == arch::traits<eve_core>::mem_type_e::DMEM &&
+         "Can only write to Dmem");
   std::copy(data, data + length, Dmem.data() + (addr % Dmem.size()));
   return iss::Ok;
 };

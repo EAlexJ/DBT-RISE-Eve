@@ -19,7 +19,8 @@
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_CXX_STANDARD": "17",
                 "CMAKE_PROJECT_TOP_LEVEL_INCLUDES":"cmake-conan/conan_provider.cmake",
-                "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE"
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE",
+                "WITH_ASMJIT": "OFF"
             }
         },
         {
@@ -30,7 +31,8 @@
                 "CMAKE_POLICY_DEFAULT_CMP0169": "OLD",
                 "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_CXX_STANDARD": "17",
-                "CMAKE_PROJECT_TOP_LEVEL_INCLUDES":"cmake-conan/conan_provider.cmake"
+                "CMAKE_PROJECT_TOP_LEVEL_INCLUDES":"cmake-conan/conan_provider.cmake",
+                "WITH_ASMJIT": "OFF"
             }
         }
     ]

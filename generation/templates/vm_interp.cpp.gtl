@@ -18,6 +18,7 @@ def nativeTypeSize(int size){
 #include <ratio>
 #include <sys/types.h>
 
+using namespace iss;
 using op = arch::traits<eve_core>::opcode_e;
 using super = typename iss::interp::vm_base<eve_core>;
 using traits = arch::traits<eve_core>;

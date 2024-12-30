@@ -8,9 +8,8 @@
 #include <iss/arch_if.h>
 #include <iss/vm_types.h>
 
-using namespace iss;
 struct eve_core;
-template <> struct arch::traits<eve_core> {
+template <> struct iss::arch::traits<eve_core> {
   enum reg_e {
     REG0, REG1, REG2, REG3, REG4, REG5, REG6, REG7, PC, NEXT_PC, SP, FLAGS0, FLAGS1, FLAGS2, FLAGS3,
     ICOUNT,
@@ -43,7 +42,7 @@ template <> struct arch::traits<eve_core> {
         enum mem_type_e { IMEM, DMEM, MEM = IMEM};
 };
 
-struct eve_core : public arch_if {
+struct eve_core : public iss::arch_if {
 #pragma pack(push, 1)
   struct eve_regs { 
     uint8_t REG0 = 0; 
@@ -75,10 +74,10 @@ struct eve_core : public arch_if {
   void reset(uint64_t address = 0) override;
   uint8_t *get_regs_base_ptr() override;
   std::pair<uint64_t, bool> load_file(std::string name, int type = -1) override;
-  status read(const address_type type, const access_type access,
+  iss::status read(const iss::address_type type, const iss::access_type access,
               const uint32_t space, const uint64_t addr, const unsigned length,
               uint8_t *const data) override;
-  status write(const address_type type, const access_type access,
+  iss::status write(const iss::address_type type, const iss::access_type access,
                const uint32_t space, const uint64_t addr, const unsigned length,
                const uint8_t *const data) override;
 

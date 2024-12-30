@@ -9,6 +9,7 @@ set(COMMON_SOURCES src/main.cpp src/core.cpp)
 set(COMMON_INCLUDE_DIR src/)
 
 add_subdirectory(DBT-RISE-Core)
+find_package(Boost REQUIRED COMPONENTS program_options)
 
 add_executable(eve_sim_interp ${COMMON_SOURCES} src/interp/vm.cpp)
 target_include_directories(eve_sim_interp PRIVATE ${COMMON_INCLUDE_DIR} src/interp/)

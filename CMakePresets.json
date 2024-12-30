@@ -10,8 +10,8 @@
     },
     "configurePresets": [
         {
-            "name": "Debug_interp",
-            "displayName": "Debug - interp",
+            "name": "Debug",
+            "displayName": "Debug ",
             "generator": "Unix Makefiles",
             "binaryDir": "build/Debug",
             "cacheVariables": {
@@ -19,22 +19,7 @@
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_CXX_STANDARD": "17",
                 "CMAKE_PROJECT_TOP_LEVEL_INCLUDES":"cmake-conan/conan_provider.cmake",
-                "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE",
-                "WITH_TCC": "OFF"
-            }
-        },
-        {
-            "name": "Debug_tcc",
-            "displayName": "Debug - tcc",
-            "generator": "Unix Makefiles",
-            "binaryDir": "build/Debug",
-            "cacheVariables": {
-                "CMAKE_POLICY_DEFAULT_CMP0169": "OLD",
-                "CMAKE_BUILD_TYPE": "Debug",
-                "CMAKE_CXX_STANDARD": "17",
-                "CMAKE_PROJECT_TOP_LEVEL_INCLUDES":"cmake-conan/conan_provider.cmake",
-                "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE",
-                "WITH_TCC": "ON"
+                "CMAKE_EXPORT_COMPILE_COMMANDS": "TRUE"
             }
         },
         {
@@ -45,8 +30,7 @@
                 "CMAKE_POLICY_DEFAULT_CMP0169": "OLD",
                 "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_CXX_STANDARD": "17",
-                "CMAKE_PROJECT_TOP_LEVEL_INCLUDES":"cmake-conan/conan_provider.cmake",
-                "WITH_TCC": "OFF"
+                "CMAKE_PROJECT_TOP_LEVEL_INCLUDES":"cmake-conan/conan_provider.cmake"
             }
         }
     ]

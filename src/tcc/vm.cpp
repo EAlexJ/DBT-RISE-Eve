@@ -27,8 +27,8 @@ void eve_vm::add_prologue(tu_builder &tu) {
 continuation_e eve_vm::gen_single_inst_behavior(virt_addr_t &pc_v,
                                                 tu_builder &tu) {
   uint8_t opcode;
-  auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH, 0,
-                             pc_v.val, 1, &opcode);
+  auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH,
+                             mem_type_e::IMEM, pc_v.val, 1, &opcode);
   assert(read_succ == iss::Ok);
   auto instr_index = local_decoder.decode_instr(opcode);
   auto return_val = continuation_e::ILLEGAL_INSTR;
@@ -46,11 +46,12 @@ continuation_e eve_vm::gen_single_inst_behavior(virt_addr_t &pc_v,
   case op::LD: {
     tu("//LD");
     std::array<uint8_t, 2> msb_lsb;
-    auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH, 0,
-                               pc_v.val + 1, 2, msb_lsb.data());
+    auto read_succ =
+        core.read(address_type::PHYSICAL, access_type::FETCH, mem_type_e::IMEM,
+                  pc_v.val + 1, 2, msb_lsb.data());
     assert(read_succ == iss::Ok);
     uint8_t regD = bit_sub<0, 3>(opcode);
-    tu.store(regD, tu.read_mem(mem_type_e::MEM,
+    tu.store(regD, tu.read_mem(mem_type_e::DMEM,
                                (msb_lsb.at(0) << 8) | msb_lsb.at(1), 8));
     pc_v = pc_v + 3;
     return_val = continuation_e::CONT;
@@ -59,11 +60,12 @@ continuation_e eve_vm::gen_single_inst_behavior(virt_addr_t &pc_v,
   case op::ST: {
     tu("//ST");
     std::array<uint8_t, 2> msb_lsb;
-    auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH, 0,
-                               pc_v.val + 1, 2, msb_lsb.data());
+    auto read_succ =
+        core.read(address_type::PHYSICAL, access_type::FETCH, mem_type_e::IMEM,
+                  pc_v.val + 1, 2, msb_lsb.data());
     assert(read_succ == iss::Ok);
     uint8_t regS = bit_sub<0, 3>(opcode);
-    tu.write_mem(mem_type_e::MEM, (msb_lsb.at(0) << 8) | msb_lsb.at(1),
+    tu.write_mem(mem_type_e::DMEM, (msb_lsb.at(0) << 8) | msb_lsb.at(1),
                  tu.load(regS, 0));
     pc_v = pc_v + 3;
     return_val = continuation_e::CONT;
@@ -73,8 +75,8 @@ continuation_e eve_vm::gen_single_inst_behavior(virt_addr_t &pc_v,
     tu("//MOVI");
     uint8_t imm = 0;
     auto read_succ =
-        core.read(address_type::PHYSICAL, access_type::FETCH, 0, pc_v.val + 1,
-                  1, reinterpret_cast<uint8_t *>(&imm));
+        core.read(address_type::PHYSICAL, access_type::FETCH, mem_type_e::IMEM,
+                  pc_v.val + 1, 1, reinterpret_cast<uint8_t *>(&imm));
     assert(read_succ == iss::Ok);
     uint8_t reg = bit_sub<0, 3>(opcode);
     tu.store(reg, imm);
@@ -131,8 +133,8 @@ continuation_e eve_vm::gen_single_inst_behavior(virt_addr_t &pc_v,
   case op::OUT: {
     tu("//OUT");
     uint8_t dest = 0;
-    auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH, 0,
-                               pc_v.val + 1, 1, &dest);
+    auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH,
+                               mem_type_e::IMEM, pc_v.val + 1, 1, &dest);
     assert(read_succ == iss::Ok);
     tu("print_eve_out(core_ptr, {} , {});", dest, tu.load(reg_e::A, 0));
     pc_v = pc_v + 2;

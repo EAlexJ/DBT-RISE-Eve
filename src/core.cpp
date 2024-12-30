@@ -6,14 +6,17 @@
 
 eve_core::eve_core() {}
 eve_core::~eve_core() {}
-
+using traits = iss::arch::traits<eve_core>;
 void eve_core::reset(uint64_t addr) {
   auto base_ptr = get_regs_base_ptr();
   for (int i = 0; i < 8; i++)
     *(base_ptr + i) = 0;
-  reg.PC = addr;
-  reg.SP = 0;
-  reg.CY = reg.SN = reg.ZE = reg.OV = false;
+  *(base_ptr + traits::reg_byte_offsets[traits::PC]) = addr;
+  *(base_ptr + traits::reg_byte_offsets[traits::SP]) = 0;
+  *(base_ptr + traits::reg_byte_offsets[traits::CY]) = false;
+  *(base_ptr + traits::reg_byte_offsets[traits::SN]) = false;
+  *(base_ptr + traits::reg_byte_offsets[traits::ZE]) = false;
+  *(base_ptr + traits::reg_byte_offsets[traits::OV]) = false;
 }
 
 uint8_t *eve_core::get_regs_base_ptr() {

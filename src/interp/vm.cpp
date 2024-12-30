@@ -29,8 +29,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start,
   auto &instr_count = get_reg<uint64_t>(reg_e::ICOUNT);
   while (instr_count < icount_limit) {
     uint8_t opcode = op::ILLEGAL; // incase decoding goes wrong
-    auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH, 0,
-                               core.reg.PC, 1, &opcode);
+    auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH,
+                               mem_type_e::IMEM, core.reg.PC, 1, &opcode);
     assert(read_succ == iss::Ok);
     auto instr_index = local_decoder.decode_instr(opcode);
     switch (instr_index) {
@@ -43,35 +43,37 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start,
     }
     case op::LD: {
       std::array<uint8_t, 2> msb_lsb;
-      auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH, 0,
-                                 core.reg.PC + 1, 2, msb_lsb.data());
+      auto read_succ =
+          core.read(address_type::PHYSICAL, access_type::FETCH,
+                    mem_type_e::IMEM, core.reg.PC + 1, 2, msb_lsb.data());
       assert(read_succ == iss::Ok);
       uint8_t regD = bit_sub<0, 3>(opcode);
-      auto write_succ = core.read(address_type::PHYSICAL, access_type::READ, 0,
-                                  (msb_lsb.at(0) << 8) | msb_lsb.at(1), 1,
-                                  &(this->get_reg(regD)));
+      auto write_succ = core.read(
+          address_type::PHYSICAL, access_type::READ, mem_type_e::DMEM,
+          (msb_lsb.at(0) << 8) | msb_lsb.at(1), 1, &(this->get_reg(regD)));
       assert(write_succ == iss::Ok);
       core.reg.PC += 3;
       break;
     }
     case op::ST: {
       std::array<uint8_t, 2> msb_lsb;
-      auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH, 0,
-                                 core.reg.PC + 1, 2, msb_lsb.data());
+      auto read_succ =
+          core.read(address_type::PHYSICAL, access_type::FETCH,
+                    mem_type_e::IMEM, core.reg.PC + 1, 2, msb_lsb.data());
       assert(read_succ == iss::Ok);
       uint8_t regS = bit_sub<0, 3>(opcode);
-      auto write_succ = core.write(address_type::PHYSICAL, access_type::READ, 0,
-                                   (msb_lsb.at(0) << 8) | msb_lsb.at(1), 1,
-                                   &(this->get_reg(regS)));
+      auto write_succ = core.write(
+          address_type::PHYSICAL, access_type::WRITE, mem_type_e::DMEM,
+          (msb_lsb.at(0) << 8) | msb_lsb.at(1), 1, &(this->get_reg(regS)));
       assert(write_succ == iss::Ok);
       core.reg.PC += 3;
       break;
     }
     case op::MOVI: {
       uint8_t imm = 0;
-      auto read_succ =
-          core.read(address_type::PHYSICAL, access_type::FETCH, 0,
-                    core.reg.PC + 1, 1, reinterpret_cast<uint8_t *>(&imm));
+      auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH,
+                                 mem_type_e::IMEM, core.reg.PC + 1, 1,
+                                 reinterpret_cast<uint8_t *>(&imm));
       assert(read_succ == iss::Ok);
       uint8_t reg = bit_sub<0, 3>(opcode);
       this->get_reg(reg) = imm;
@@ -115,8 +117,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start,
     }
     case op::OUT: {
       uint8_t dest = 0;
-      auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH, 0,
-                                 core.reg.PC + 1, 1, &dest);
+      auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH,
+                                 mem_type_e::IMEM, core.reg.PC + 1, 1, &dest);
       assert(read_succ == iss::Ok);
       CPPLOG(INFO) << "I/O Port " << std::hex << "0x" << (unsigned)dest
                    << std::dec << " sent: " << (unsigned)core.reg.A;

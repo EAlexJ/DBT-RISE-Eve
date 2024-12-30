@@ -1,0 +1,13 @@
+#ifndef INSTRS_H
+#define INSTRS_H
+#include "iss/arch/traits.h"
+#include <core.h>
+#include <cstdint>
+#include <iss/instruction_decoder.h>
+
+using op = arch::traits<eve_core>::opcode_e;
+static constexpr std::array<generic_instruction_descriptor, ${instructions.size()}> eve_instr_info{{
+        <%instructions.each{instr -> %>
+        {${instr.encoding}, ${instr.mask}, op::${instr.instruction.name}},<%}%>
+    }};
+#endif

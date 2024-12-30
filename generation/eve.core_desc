@@ -1,0 +1,96 @@
+Core eve_core{
+    architectural_state {
+        register unsigned<8> REG[8] [[is_main_reg]];
+        unsigned<8>& A = REG[0];
+        unsigned<8>& B = REG[1];
+        unsigned<8>& C = REG[2];
+        unsigned<8>& D = REG[3];
+        unsigned<8>& X = REG[4];
+        unsigned<8>& Y = REG[5];
+        unsigned<8>& M1 = REG[6];
+        unsigned<8>& M2 = REG[7];
+
+        register unsigned<16> PC [[is_pc]];
+        register unsigned<16> SP;
+
+        register unsigned<1> FLAGS[4];
+        unsigned<1>& CY = FLAGS[0];
+        unsigned<1>& SN = FLAGS[1];
+        unsigned<1>& ZE = FLAGS[2];
+        unsigned<1>& OV = FLAGS[3];
+
+        extern unsigned<8> IMEM[0xfff];
+        extern unsigned<8> DMEM[0xffff];
+    }
+
+    functions{
+        extern void print_eve_out(unsigned<8> port, unsigned<8> val);
+    }
+
+    instructions {
+        MOV {
+            encoding: 2'b01 :: regS[2:0] :: regD[2:0];
+            behavior: REG[regD] = REG[regS];
+        }
+
+        LD {
+            encoding: 5'b10000 :: reg[2:0];
+            behavior:{
+                unsigned<8> msb = IMEM[PC+1];
+                unsigned<8> lsb = IMEM[PC+2];
+                REG[reg] = DMEM[((unsigned<16>)msb<<8) | lsb];
+            }
+        }
+
+        ST {
+            encoding: 5'b10001 :: reg[2:0];
+            behavior: {
+                unsigned<8> msb = IMEM[PC+1];
+                unsigned<8> lsb = IMEM[PC+2];
+                DMEM[((unsigned<16>)msb<<8) | lsb]  = REG[reg]; 
+            }
+        }
+
+        MOVI {
+            encoding: 5'b10100 :: reg[2:0];
+            behavior: {
+                unsigned<8> imm = IMEM[PC+1];
+                REG[reg] = imm;
+            }
+        }
+
+        ADD {
+            encoding: 8'b10110100;
+            behavior: {
+                unsigned<9> res = A + B;
+                unsigned<9> my_res = REG[0] + REG[1];
+                CY = res > 0xFF;
+                SN = (res & 0x80) != 0;
+                ZE = (res == 0);
+                OV = (signed<8>)A > 0 && (signed<8>)B > 0 && (signed<8>)res < 0 ||
+                     (signed<8>)A < 0 && (signed<8>)B < 0 && (signed<8>)res > 0;
+                A = (unsigned<8>)res;
+            }
+        }
+
+        NOP {
+            encoding: 8'b00000000;
+            behavior: {}
+        }
+
+        GOTOXY {
+            encoding: 8'b11000010;
+            behavior: {
+                PC = ((unsigned<16>)X << 8) | Y;
+            }
+        }
+
+        OUT {
+            encoding: 8'b11000110;
+            behavior: {
+                unsigned<8> port = IMEM[PC+1];
+                print_eve_out(port, A);
+            }
+        }
+    }
+}

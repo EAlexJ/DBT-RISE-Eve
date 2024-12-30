@@ -1,0 +1,77 @@
+<%
+def nativeTypeSize(int size){
+    if(size<=8) return 8; else if(size<=16) return 16; else if(size<=32) return 32; else return 64;
+}
+%>
+
+#include "vm.h"
+#include "core.h"
+#include "iss/interp/vm_base.h"
+#include "iss/vm_if.h"
+#include "iss/vm_types.h"
+#include "util/ities.h"
+#include "util/logging.h"
+#include <array>
+#include <cassert>
+#include <cstdint>
+#include <iostream>
+#include <ratio>
+#include <sys/types.h>
+
+using op = arch::traits<eve_core>::opcode_e;
+using super = typename iss::interp::vm_base<eve_core>;
+using traits = arch::traits<eve_core>;
+
+struct memory_access_exception : public std::exception{
+    memory_access_exception(){}
+};
+
+target_adapter_if *eve_vm::accquire_target_adapter(server_if *srv) {
+  return nullptr;
+};
+eve_vm::eve_vm()
+    : vm_base<eve_core>(std::make_unique<eve_core>(), 0, 0),
+      local_decoder([]() {
+        return std::vector<generic_instruction_descriptor>(
+            eve_instr_info.begin(), eve_instr_info.end());
+      }()){};
+
+eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start,
+                                         uint64_t icount_limit) {
+  auto &instr_count = get_reg<uint64_t>(reg_e::ICOUNT);
+  auto* PC = &get_reg(reg_e::PC);
+  auto* NEXT_PC = &get_reg(reg_e::NEXT_PC);
+  while (instr_count < icount_limit) {
+    uint8_t instr = op::ILLEGAL; // incase decoding goes wrong
+    auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH, 0,
+                               *PC, 1, &instr);
+    assert(read_succ == iss::Ok);
+    auto instr_index = local_decoder.decode_instr(instr);
+    switch (instr_index) {<%instructions.eachWithIndex{instr, idx -> %>
+        case op::${instr.name}: {
+            <%instr.fields.eachLine{%>${it}
+            <%}%>if(this->disass_enabled){
+                <%instr.disass.eachLine{%>
+                ${it}<%}%>
+                this->core.disass_output(*PC, mnemonic);
+            }
+            <%instr.usedVariables.each{ k,v->
+            if(v.isArray) {%>
+            uint${nativeTypeSize(v.type.size)}_t* ${k} = reinterpret_cast<uint${nativeTypeSize(v.type.size)}_t*>(this->regs_base_ptr+arch::traits<eve_core>::reg_byte_offsets[arch::traits<eve_core>::${k}0]);<% }else{ %> 
+            uint${nativeTypeSize(v.type.size)}_t* ${k} = reinterpret_cast<uint${nativeTypeSize(v.type.size)}_t*>(this->regs_base_ptr+arch::traits<eve_core>::reg_byte_offsets[arch::traits<eve_core>::${k}]);<%}}%>
+            <%instr.behavior.eachLine{%>
+            ${it}<%}%>
+           *NEXT_PC = *PC + ${instr.length/8};
+            break;
+        }<%}%>
+    default: {
+      CPPLOG(ERR) << "Illegal Instruction, stopping";
+      throw simulation_stopped(1);
+      break;
+    }
+    }
+    *PC = *NEXT_PC;
+    instr_count++;
+  }
+  throw simulation_stopped(0);
+};

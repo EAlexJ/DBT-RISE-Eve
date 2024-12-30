@@ -1,4 +1,5 @@
 #include <core.h>
+#include <filesystem>
 #include <iss/arch/traits.h>
 #include <iss/vm_types.h>
 #include <util/logging.h>
@@ -30,25 +31,31 @@ uint8_t *eve_core::get_regs_base_ptr() {
 
 std::pair<uint64_t, bool> eve_core::load_file(std::string name, int type) {
   std::ifstream filestream(name);
-
-  if (filestream.is_open()) {
-    unsigned linenumber = 0;
-    std::string line;
-    while (filestream >> line) {
-      try {
-        Imem.at(linenumber) = std::stoi(line, nullptr, 16);
-      } catch (std::out_of_range) {
-        CPPLOG(ERR) << "Access in file '" << name << "' at line " << linenumber
-                    << " is out of range";
-        return std::make_pair(0, false);
-      } catch (std::invalid_argument) {
-        CPPLOG(ERR) << "Invalid argument in file '" << name << "' at line "
-                    << linenumber;
-        return std::make_pair(0, false);
+  try {
+    if (filestream.is_open() && std::filesystem::file_size(name) != 0) {
+      unsigned linenumber = 0;
+      std::string line;
+      while (filestream >> line) {
+        try {
+          Imem.at(linenumber) = std::stoi(line, nullptr, 16);
+        } catch (std::out_of_range) {
+          CPPLOG(ERR) << "Access in file '" << name << "' at line "
+                      << linenumber << " is out of range";
+          return std::make_pair(0, false);
+        } catch (std::invalid_argument) {
+          CPPLOG(ERR) << "Invalid argument in file '" << name << "' at line "
+                      << linenumber;
+          return std::make_pair(0, false);
+        }
+        linenumber++;
       }
-      linenumber++;
+      return std::make_pair(0, true);
     }
-    return std::make_pair(0, true);
+
+  } catch (std::filesystem::filesystem_error &e) {
+    CPPLOG(ERR) << e.what();
+    return std::make_pair(0, false);
+  } catch (...) {
   }
   CPPLOG(ERR) << "Something went wrong when opening file '" << name << "'";
   return std::make_pair(0, false);

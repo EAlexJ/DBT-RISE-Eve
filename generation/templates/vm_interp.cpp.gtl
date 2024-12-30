@@ -26,6 +26,11 @@ struct memory_access_exception : public std::exception{
     memory_access_exception(){}
 };
 
+void print_eve_out(int port, int val){
+        CPPLOG(INFO) << "I/O Port " << std::hex << "0x" << port
+                   << std::dec << " sent: " << val;
+}
+
 target_adapter_if *eve_vm::accquire_target_adapter(server_if *srv) {
   return nullptr;
 };
@@ -39,14 +44,22 @@ eve_vm::eve_vm()
 eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start,
                                          uint64_t icount_limit) {
   auto &instr_count = get_reg<uint64_t>(reg_e::ICOUNT);
-  auto* PC = &get_reg(reg_e::PC);
-  auto* NEXT_PC = &get_reg(reg_e::NEXT_PC);
+  auto *PC = &get_reg(reg_e::PC);
+  auto *NEXT_PC = &get_reg(reg_e::NEXT_PC);
   while (instr_count < icount_limit) {
-    uint8_t instr = op::ILLEGAL; // incase decoding goes wrong
-    auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH, 0,
-                               *PC, 1, &instr);
-    assert(read_succ == iss::Ok);
-    auto instr_index = local_decoder.decode_instr(instr);
+    uint32_t instr_index = op::ILLEGAL;
+    uint32_t instr{0};
+    for (size_t i = 0; i < 3; ++i) {
+      uint8_t cur_read;
+      auto read_succ = core.read(address_type::PHYSICAL, access_type::FETCH, 0,
+                                 *PC + i, 1, &cur_read);
+      instr |= cur_read;
+      instr_index = local_decoder.decode_instr(instr);
+      if (instr_index == std::numeric_limits<uint32_t>::max())
+        instr = instr << 8;
+      else
+        break;
+    }
     switch (instr_index) {<%instructions.eachWithIndex{instr, idx -> %>
         case op::${instr.name}: {
             <%instr.fields.eachLine{%>${it}
@@ -59,9 +72,9 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start,
             if(v.isArray) {%>
             uint${nativeTypeSize(v.type.size)}_t* ${k} = reinterpret_cast<uint${nativeTypeSize(v.type.size)}_t*>(this->regs_base_ptr+arch::traits<eve_core>::reg_byte_offsets[arch::traits<eve_core>::${k}0]);<% }else{ %> 
             uint${nativeTypeSize(v.type.size)}_t* ${k} = reinterpret_cast<uint${nativeTypeSize(v.type.size)}_t*>(this->regs_base_ptr+arch::traits<eve_core>::reg_byte_offsets[arch::traits<eve_core>::${k}]);<%}}%>
+            *NEXT_PC = *PC + ${instr.length/8};
             <%instr.behavior.eachLine{%>
             ${it}<%}%>
-           *NEXT_PC = *PC + ${instr.length/8};
             break;
         }<%}%>
     default: {

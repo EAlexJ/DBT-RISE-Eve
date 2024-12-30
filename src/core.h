@@ -83,7 +83,8 @@ template <> struct arch::traits<eve_core> {
   static constexpr std::array<uint32_t, 17> reg_byte_offsets{
       0, 1, 2, 3, 4, 5, 6, 7, 9, 11, 12, 13, 14, 15, 16, 24, 26};
   enum sreg_flag_e { FLAGS };
-  enum mem_type_e { DMEM, IMEM };
+  // vm_base reads pc from MEM, so we need to alias it
+  enum mem_type_e { DMEM, IMEM, MEM = IMEM };
 };
 
 struct eve_core : public arch_if {

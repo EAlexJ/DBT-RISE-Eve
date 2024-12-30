@@ -4,12 +4,15 @@
 #include <cstdint>
 #include <tuple>
 #include <vm.h>
+
+using namespace iss::tcc;
 extern "C" {
 void print_eve_out(void *iface, int port, int val) {
   CPPLOG(INFO) << "[EXEC] I/O Port " << port << " sent: " << val;
 }
 }
-target_adapter_if *eve_vm::accquire_target_adapter(server_if *srv) {
+debugger::target_adapter_if *
+eve_vm::accquire_target_adapter(debugger::server_if *srv) {
   return nullptr;
 };
 eve_vm::eve_vm()

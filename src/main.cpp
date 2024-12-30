@@ -11,7 +11,7 @@ namespace po = boost::program_options;
 int main(int argc, char *argv[]) {
   std::string filename;
   int icount = 0;
-  bool disass = false;
+  bool dump = false;
   try {
     // Define and configure options
     po::options_description mandatory("Mandatory options");
@@ -20,10 +20,10 @@ int main(int argc, char *argv[]) {
                             "File to process");
 
     po::options_description optional("Optional options");
-    optional.add_options()("icount",
-                           po::value<int>(&icount)->default_value(100),
-                           "Instruction count")(
-        "disass", po::bool_switch(&disass), "Toggle disassembly output");
+    optional.add_options()(
+        "icount", po::value<int>(&icount)->default_value(100),
+        "Instruction count")("dump", po::bool_switch(&dump),
+                             "Toggle dumping of Intermediate Representation");
 
     po::options_description all("Allowed options");
     all.add(mandatory).add(optional).add_options()("help",
@@ -52,8 +52,7 @@ int main(int argc, char *argv[]) {
   if (!success) {
     return 1;
   }
-  my_vm.setDisassEnabled(disass);
   my_vm.reset(start_addr);
-  my_vm.start(icount, true);
+  my_vm.start(icount, dump);
   return 0;
 }

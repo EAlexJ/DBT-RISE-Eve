@@ -1,3 +1,4 @@
+
 #ifndef EVE_CORE_H
 #define EVE_CORE_H
 
@@ -8,105 +9,61 @@
 #include <iss/vm_types.h>
 
 using namespace iss;
-// needs to be forward declared for structs to be legal
-// struct needs to be before eve_core for phys_addr_t to be known
 struct eve_core;
-
-// the traits struct is needed to instantiate the vm
 template <> struct arch::traits<eve_core> {
   enum reg_e {
-    A,
-    B,
-    C,
-    D,
-    X,
-    Y,
-    M1,
-    M2,
-    PC,
-    SP,
-    CY,
-    SN,
-    ZE,
-    OV,
-    // members starting here are needed for the tcc vm
+    REG0, REG1, REG2, REG3, REG4, REG5, REG6, REG7, PC, NEXT_PC, SP, FLAGS0, FLAGS1, FLAGS2, FLAGS3,
     ICOUNT,
-    NEXT_PC,
-    LAST_BRANCH,
-    NUM_REGS
+    last_branch,
+    trap_state,
+    NUM_REGS,
+    A = REG0, B = REG1, C = REG2, D = REG3, X = REG4, Y = REG5, M1 = REG6, M2 = REG7, CY = FLAGS0, SN = FLAGS1, ZE = FLAGS2, OV = FLAGS3
   };
   enum opcode_e {
-    MOV,
-    MOVI,
-    LD,
-    ST,
-    LDM,
-    STM,
-    LDCODE,
-    LDSP,
-    AND,
-    OR,
-    XOR,
-    NOT,
-    ADD,
-    ADDC,
-    SUB,
-    SUBC,
-    NEG,
-    CLR,
-    SHL,
-    SHLC,
-    SHR,
-    SHRC,
-    INCR,
-    DECR,
-    CMP,
-    ADD16,
-    CALL,
-    RET,
-    PUSH,
-    POP,
-    BRANCH,
-    GOTOXY,
-    NOP,
-    IN,
-    OUT,
+    MOV = 0,
+    LD = 1,
+    ST = 2,
+    MOVI = 3,
+    ADD = 4,
+    NOP = 5,
+    GOTOXY = 6,
+    OUT = 7,
     ILLEGAL
   };
-  using reg_t = uint8_t;
-  using addr_t = uint16_t;
-  using code_word_t = uint32_t;
-  using virt_addr_t = typed_addr_t<address_type::PHYSICAL>;
-  using phys_addr_t = typed_addr_t<address_type::PHYSICAL>;
-  static constexpr std::array<uint32_t, 17> reg_bit_widths{
-      8, 8, 8, 8, 8, 8, 8, 8, 16, 16, 1, 1, 1, 1, 64, 16, 8};
-  static constexpr std::array<uint32_t, 17> reg_byte_offsets{
-      0, 1, 2, 3, 4, 5, 6, 7, 9, 11, 12, 13, 14, 15, 16, 24, 26};
-  enum sreg_flag_e { FLAGS };
-  // vm_base reads pc from MEM, so we need to alias it
-  enum mem_type_e { DMEM, IMEM, MEM = IMEM };
+    using reg_t = uint8_t;
+    using addr_t = uint16_t;
+    using code_word_t = uint32_t;
+    using virt_addr_t = typed_addr_t<address_type::PHYSICAL>;
+    using phys_addr_t = typed_addr_t<address_type::PHYSICAL>;
+    static constexpr std::array<const uint32_t, 18> reg_bit_widths{
+        {8, 8, 8, 8, 8, 8, 8, 8, 16, 16, 16, 8, 8, 8, 8, 64, 32, 32}};
+    static constexpr std::array<const uint32_t, 18> reg_byte_offsets{
+        {0, 1, 2, 3, 4, 5, 6, 7, 8, 10, 12, 14, 15, 16, 17, 18, 26, 30}};
+    enum sreg_flag_e { FLAGS };
+        enum mem_type_e { IMEM, DMEM, MEM = IMEM};
 };
 
 struct eve_core : public arch_if {
 #pragma pack(push, 1)
-  struct eve_regs {
-    uint8_t A = 0;
-    uint8_t B = 0;
-    uint8_t C = 0;
-    uint8_t D = 0;
-    uint8_t X = 0;
-    uint8_t Y = 0;
-    uint8_t M1 = 0;
-    uint8_t M2 = 0;
-    uint16_t PC = 0;
-    uint16_t SP = 0;
-    uint8_t CY = 0;
-    uint8_t SN = 0;
-    uint8_t ZE = 0;
-    uint8_t OV = 0;
+  struct eve_regs { 
+    uint8_t REG0 = 0; 
+    uint8_t REG1 = 0; 
+    uint8_t REG2 = 0; 
+    uint8_t REG3 = 0; 
+    uint8_t REG4 = 0; 
+    uint8_t REG5 = 0; 
+    uint8_t REG6 = 0; 
+    uint8_t REG7 = 0; 
+    uint16_t PC = 0; 
+    uint16_t NEXT_PC = 0; 
+    uint16_t SP = 0; 
+    uint8_t FLAGS0 = 0; 
+    uint8_t FLAGS1 = 0; 
+    uint8_t FLAGS2 = 0; 
+    uint8_t FLAGS3 = 0;
     uint64_t ICOUNT;
-    uint16_t NEXT_PC;
-    uint8_t LAST_BRANCH;
+    uint8_t last_branch;
+    uint32_t trap_state;
   } reg;
 #pragma pack(pop)
 
@@ -125,15 +82,10 @@ struct eve_core : public arch_if {
                const uint32_t space, const uint64_t addr, const unsigned length,
                const uint8_t *const data) override;
 
-  // core definitions needed to instantiate the vm
   iss::sync_type needed_sync() const { return iss::NO_SYNC; }
-
-  // further core definitions needed to instantiate the tcc vm
   inline bool should_stop() { return exit_code; };
   inline uint64_t stop_code() { return exit_code; };
   uint64_t exit_code = 0;
-
-  //this dependency could be eliminated using constexpr if in the vm_base
   iss::arch::traits<eve_core>::phys_addr_t virt2phys(const iss::addr_t &addr);
 };
 #endif

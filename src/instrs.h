@@ -7,17 +7,14 @@
 
 using op = arch::traits<eve_core>::opcode_e;
 static constexpr std::array<generic_instruction_descriptor, 8> eve_instr_info{{
-
-    // Missing Instructions are:
-    // PUSH, POP, CMP, BRANCH, CLR, CAL, RET, LDM, STM, LDCODE, LDSP, AND, OR, XOR, NOT, ADDC, SUB, SUBC, NEG, CLR, SHL, SHLC, SHR, SHRC, INCR, DECR, ADD16, IN
-    // value, mask, index
-    {0b01000000, 0b11000000, op::MOV},
-    {0b10000000, 0b11111000, op::LD},
-    {0b10001000, 0b11111000, op::ST},
-    {0b10100000, 0b11111000, op::MOVI},
-    {0b10110100, 0b11111111, op::ADD},
-    {0b11000110, 0b11111111, op::OUT},
-    {0b00000000, 0b11111111, op::NOP},
-    {0b11000010, 0b11111111, op::GOTOXY},
-}};
+        
+        {0b01000000, 0b11000000, op::MOV},
+        {0b100000000000000000000000, 0b111110000000000000000000, op::LD},
+        {0b100010000000000000000000, 0b111110000000000000000000, op::ST},
+        {0b1010000000000000, 0b1111100000000000, op::MOVI},
+        {0b10110100, 0b11111111, op::ADD},
+        {0b00000000, 0b11111111, op::NOP},
+        {0b11000010, 0b11111111, op::GOTOXY},
+        {0b1100011000000000, 0b1111111100000000, op::OUT},
+    }};
 #endif

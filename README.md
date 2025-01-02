@@ -1,6 +1,6 @@
 # DBT-RISE-EVE
 
-A Instruction Set Simulator based on DBT-RISE implementing the EveCore Instruction Set.
+An Instruction Set Simulator based on DBT-RISE implementing the EveCore Instruction Set.
 
 ## Description
 

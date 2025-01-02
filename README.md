@@ -28,7 +28,7 @@ Step-by-step instructions on how to set up the project:
 
 ## Usage
 
-When building, the executable `eve_sim_interp` is created. For an overview of all available options use the `--help` flag.
+When building, the executable `eve_sim_interp` is created. For an overview of all available options use the `--help` flag. The instruction count is by default limited to 100 (as no HALT instruction or similar is implemented), this can be changed with the appropriate option.
 
 ## Features
 

@@ -24,7 +24,9 @@ TMPL_DIR=${SCRIPTDIR}/templates
 MAPPING=""
 MAPPING="$MAPPING -m ${TMPL_DIR}/core.h.gtl:${OUTPUT_DIR}/core.h"
 MAPPING="$MAPPING -m ${TMPL_DIR}/instrs.h.gtl:${OUTPUT_DIR}/instrs.h"
-MAPPING="$MAPPING -m ${TMPL_DIR}/vm_${BACKEND}.cpp.gtl:${OUTPUT_DIR}/${BACKEND}/vm.cpp"
+MAPPING="$MAPPING -m ${TMPL_DIR}/vm.cpp.gtl:${OUTPUT_DIR}/${BACKEND}/vm.cpp"
+MAPPING="$MAPPING -m ${TMPL_DIR}/vm.h.gtl:${OUTPUT_DIR}/${BACKEND}/vm.h"
+
 
 
 [ -e ${GENERATOR_DIR} ] || die "No generator source found!" 2

@@ -24,7 +24,12 @@ Core eve_core{
     }
 
     functions{
-        extern void print_eve_out(unsigned<8> port, unsigned<8> val);
+        extern void eve_out(unsigned<8> port, unsigned<8> val);
+        extern void eve_in();
+        void set_SN_ZE(unsigned<8> res){
+            SN = (res & 0x80) != 0;
+            ZE = res == 0;
+        }
     }
 
     instructions {
@@ -35,22 +40,96 @@ Core eve_core{
 
         LD {
             encoding: 5'b10000 :: reg[2:0] :: imm[15:0];
-            behavior:{
-                REG[reg] = DMEM[imm];
-            }
+            behavior: REG[reg] = DMEM[imm];
         }
 
         ST {
             encoding: 5'b10001 :: reg[2:0] :: imm[15:0];
+            behavior: DMEM[imm]  = REG[reg]; 
+        }
+
+        PUSH {
+            encoding: 5'b10010 :: reg[2:0];
             behavior: {
-                DMEM[imm]  = REG[reg]; 
+                SP = (unsigned<16>)(SP - 1);
+                DMEM[SP] = REG[reg];
             }
         }
 
+        POP {
+            encoding: 5'b10011 :: reg[2:0];
+            behavior: {
+                REG[reg] = DMEM[SP];
+                SP = (unsigned<16>)(SP + 1);
+            }
+        }
         MOVI {
             encoding: 5'b10100 :: reg[2:0] :: imm[7:0];
+            behavior: REG[reg] = imm;
+        }
+
+        ADD16 {
+            encoding: 5'b10101 :: regS[1:0] :: regD[0:0] :: imm[15:0];
             behavior: {
-                REG[reg] = imm;
+                unsigned<16> res = imm;
+                if(regS == 2'b00)
+                    res = (unsigned<16>)(imm + (X :: Y));
+                else if(regS == 2'b01)
+                    res = (unsigned<16>)(imm + (M1 :: M2));
+                else if(regS ==2'b11)
+                    res = (unsigned<16>)(imm + A);
+                if(regD == 0){
+                    X = res[15:8];
+                    Y = res[7:0];
+                } 
+                else if(regD == 1){
+                    M1 = res[15:8];
+                    M2 = res[7:0];
+                }
+            }
+        }
+
+        AND {
+            encoding: 8'b10110000;
+            behavior: {
+                unsigned<8> res = A & B;
+                set_SN_ZE(res);
+                CY = 0;
+                OV = 0;
+                A = res;
+            }
+        }
+
+        OR {
+            encoding: 8'b10110001;
+            behavior: {
+                unsigned<8> res = A | B;
+                set_SN_ZE(res);
+                CY = 0;
+                OV = 0;
+                A = res;
+            }
+        }
+
+        XOR {
+            encoding: 8'b10110010;
+            behavior: {
+                unsigned<8> res = A ^ B;
+                set_SN_ZE(res);
+                CY = 0;
+                OV = 0;
+                A = res;
+            }
+        }
+
+        NOT {
+            encoding: 8'b10110011;
+            behavior: {
+                unsigned<8> res = !A;
+                set_SN_ZE(res);
+                CY = 0;
+                OV = 0;
+                A = res;
             }
         }
 
@@ -58,33 +137,265 @@ Core eve_core{
             encoding: 8'b10110100;
             behavior: {
                 unsigned<9> res = A + B;
-                unsigned<9> my_res = REG[0] + REG[1];
+                set_SN_ZE((unsigned<8>)res);
                 CY = res > 0xFF;
-                SN = (res & 0x80) != 0;
-                ZE = (res == 0);
                 OV = (signed<8>)A > 0 && (signed<8>)B > 0 && (signed<8>)res < 0 ||
                      (signed<8>)A < 0 && (signed<8>)B < 0 && (signed<8>)res > 0;
                 A = (unsigned<8>)res;
             }
         }
 
-        NOP {
-            encoding: 8'b00000000;
-            behavior: {}
+        ADDC {
+            encoding: 8'b10110101;
+            behavior: {
+                unsigned<10> res = A + B + CY;
+                set_SN_ZE((unsigned<8>)res);
+                CY = res > 0xFF;
+                OV = (signed<8>)A > 0 && (signed<8>)B > 0 && (signed<8>)res < 0 ||
+                     (signed<8>)A < 0 && (signed<8>)B < 0 && (signed<8>)res > 0;
+                A = (unsigned<8>)res;
+            }
+        }
+
+        SUB {
+            encoding: 8'b10110110;
+            behavior: {
+                signed<9> res = A - B;
+                set_SN_ZE((unsigned<8>)res);
+                CY = res < 0;
+                OV = (((A ^ B) & 0x80) && ((A ^ res) & 0x80));
+                A = (unsigned<8>)res;
+            }
+        }
+
+        SUBC {
+            encoding: 8'b10110111;
+            behavior: {
+                signed<10> res = A - B - CY;
+                set_SN_ZE((unsigned<8>)res);
+                CY = res < 0;
+                OV = (((A ^ B) & 0x80) && ((A ^ res) & 0x80));
+                A = (unsigned<8>)res;
+            }
+        }
+
+        NEG {
+            encoding: 8'b10111000;
+            behavior: {
+                signed<9> res = -A;
+                set_SN_ZE((unsigned<8>)res);
+                CY = 0;
+                OV = (unsigned<1>)(A & 0x80);
+                A = (unsigned<8>)res;
+            }
+        }
+
+        CLR {
+            encoding: 8'b10111001;
+            behavior: {
+                SN = 0;
+                ZE = 1;
+                CY = 0;
+                OV = 0;
+                A = 0;
+            }
+        }
+
+        SHL {
+            encoding: 8'b10111010;
+            behavior: {
+                unsigned<9> res = A << 1;
+                set_SN_ZE((unsigned<8>)res);
+                CY = (unsigned<1>)(res & 0x100);
+                OV = 0;
+                A = (unsigned<8>) res;
+            }
+        }
+
+        SHLC {
+            encoding: 8'b10111011;
+            behavior: {
+                unsigned<9> res = A :: CY;
+                set_SN_ZE((unsigned<8>)res);
+                CY = (unsigned<1>)(res & 0x100);
+                OV = 0;
+                A = (unsigned<8>)res;
+            }
+        }
+
+        SHR {
+            encoding: 8'b10111101;
+            behavior: {
+                unsigned<8> res = A >> 1;
+                SN = 0;
+                ZE = res == 0;
+                CY = (unsigned<1>)A;
+                OV = 0;
+                A = res;
+            }
+        }
+
+        SHRC {
+            encoding: 8'b10111011;
+            behavior: {
+                unsigned<9> res = (CY :: A) >> 1;
+                set_SN_ZE((unsigned<8>)res);
+                CY = (unsigned<1>)A;
+                OV = 0;
+                A = (unsigned<8>)res;
+            }
+        }
+
+        INCR {
+            encoding: 8'b10111110;
+            behavior: {
+                unsigned<9> res = A + 1;
+                set_SN_ZE((unsigned<8>)res);
+                CY = 0;
+                OV = 0;
+                A = (unsigned<8>)res;
+            }
+        }
+
+        DEC {
+            encoding: 8'b10111111;
+            behavior: {
+                signed<9> res = A - 1;
+                set_SN_ZE((unsigned<8>)res);
+                CY = 0;
+                OV = 0;
+                A = (unsigned<8>)res;                
+            }
+        }
+
+        LDSP {
+            encoding: 8'b11000000 :: imm[15:0];
+            behavior: SP = imm;
+        }
+
+        LDCODE {
+            encoding: 8'b11000001;
+            behavior: {
+                unsigned<16> read_addr = X :: Y;
+                A = IMEM[read_addr];
+            }
         }
 
         GOTOXY {
             encoding: 8'b11000010;
+            behavior: PC = X :: Y;
+        }
+
+        CALL {
+            encoding: 8'b11000011 :: addr[15:0];
             behavior: {
-                PC = ((unsigned<16>)X << 8) | Y;
+                unsigned<16> ret_addr = (unsigned<16>)(PC + 1);
+                SP = (unsigned<16>)(SP - 2);
+                DMEM[SP] = (unsigned<8>)(ret_addr >> 8);
+                DMEM[SP+1] = (unsigned<8>)ret_addr;
+                PC = addr;
             }
+        }
+
+        RET {
+            encoding: 8'b11000100;
+            behavior: {
+                unsigned<8> msb_addr = DMEM[SP];
+                unsigned<8> lsb_addr = DMEM[SP+1];
+                SP = (unsigned<16>)(SP + 2);
+                PC = msb_addr :: lsb_addr;
+            }
+        }
+
+        IN {
+            encoding: 8'b11000101 :: port[7:0];
+            behavior: eve_in();
         }
 
         OUT {
             encoding: 8'b11000110 :: port[7:0];
+            behavior: eve_out(port, A);
+        }
+        
+        LDM {
+            encoding: 8'b11000111 :: imm[15:0];
             behavior: {
-                print_eve_out(port, A);
+                unsigned<16> read_addr = (unsigned<16>)((M1 :: M2) + imm);
+                A = DMEM[read_addr];
             }
+        }
+
+        STM {
+            encoding: 8'b11001000 :: imm[15:0];
+            behavior: {
+                unsigned<16> write_addr = (unsigned<16>)((M1 :: M2) + imm);
+                DMEM[write_addr] = A;                
+            }
+        }
+
+        CMP {
+            encoding: 8'b11001001;
+            behavior: {
+                signed<9> res = A - B;
+                set_SN_ZE((unsigned<8>)res);
+                CY = res < 0;
+                OV = (((A ^ B) & 0x80) && ((A ^ res) & 0x80));
+            }
+        }
+
+        BRANCH {
+            encoding: 4'b1101 :: cond[3:0] :: addr[15:0];
+            behavior: {
+                if(cond == 4'b0000){
+                    if(ZE) PC = addr;
+                }
+                else if(cond == 4'b0001){
+                    if(!ZE) PC = addr;
+                }
+                else if(cond == 4'b0010){
+                    if(SN^OV) PC = addr;
+                }
+                else if(cond == 4'b0011){
+                    if((SN^OV) | ZE) PC = addr;
+                }
+                else if(cond == 4'b0100){
+                    if((SN==OV) & !ZE) PC = addr;
+                }
+                else if(cond == 4'b0101){
+                    if(SN==OV) PC = addr;
+                }
+                else if(cond == 4'b0110){
+                    if(CY) PC = addr;
+                }
+                else if(cond == 4'b0111){
+                    if(CY|ZE) PC = addr;
+                }
+                else if(cond == 4'b1000){
+                    if(!(CY|ZE)) PC = addr;
+                }
+                else if(cond == 4'b1001){
+                    if(!CY) PC = addr;
+                }
+                else if(cond == 4'b1010){
+                    if(!SN) PC = addr;
+                }
+                else if(cond == 4'b1011){
+                    if(SN) PC = addr;
+                }
+                else if(cond == 4'b1100){
+                    if(!OV) PC = addr;
+                }
+                else if(cond == 4'b1101){
+                    if(OV) PC = addr;
+                }
+                else if(cond == 4'b1110)
+                    PC = addr;
+            }
+        }
+
+        NOP {
+            encoding: 8'b00000000;
+            behavior: {}
         }
     }
 }

@@ -24,15 +24,19 @@ struct memory_access_exception : public std::exception {
   memory_access_exception() {}
 };
 
-void print_eve_out(int port, int val) {
+void eve_out(int port, int val) {
   CPPLOG(INFO) << "I/O Port " << std::hex << "0x" << port << std::dec
                << " sent: " << val;
+}
+void eve_in(){
+
 }
 
 debugger::target_adapter_if *
 eve_vm::accquire_target_adapter(debugger::server_if *srv) {
   return nullptr;
 };
+
 eve_vm::eve_vm()
     : vm_base<eve_core>(std::make_unique<eve_core>(), 0, 0),
       local_decoder([]() {
@@ -60,22 +64,22 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start,
         break;
     }
     switch (instr_index) {<%instructions.eachWithIndex{instr, idx -> %>
-        case op::${instr.name}: {
-            <%instr.fields.eachLine{%>${it}
-            <%}%>if(this->disass_enabled){
-                <%instr.disass.eachLine{%>
-                ${it}<%}%>
-                this->core.disass_output(*PC, mnemonic);
-            }
-            <%instr.usedVariables.each{ k,v->
-            if(v.isArray) {%>
-            uint${nativeTypeSize(v.type.size)}_t* ${k} = reinterpret_cast<uint${nativeTypeSize(v.type.size)}_t*>(this->regs_base_ptr+arch::traits<eve_core>::reg_byte_offsets[arch::traits<eve_core>::${k}0]);<% }else{ %> 
-            uint${nativeTypeSize(v.type.size)}_t* ${k} = reinterpret_cast<uint${nativeTypeSize(v.type.size)}_t*>(this->regs_base_ptr+arch::traits<eve_core>::reg_byte_offsets[arch::traits<eve_core>::${k}]);<%}}%>
-            *NEXT_PC = *PC + ${instr.length/8};
-            <%instr.behavior.eachLine{%>
-            ${it}<%}%>
-            break;
-        }<%}%>
+      case op::${instr.name}: {
+          <%instr.fields.eachLine{%>${it}
+          <%}%>if(this->disass_enabled){
+              <%instr.disass.eachLine{%>
+              ${it}<%}%>
+              this->core.disass_output(*PC, mnemonic);
+          }
+          <%instr.usedVariables.each{ k,v->
+          if(v.isArray) {%>
+          uint${nativeTypeSize(v.type.size)}_t* ${k} = reinterpret_cast<uint${nativeTypeSize(v.type.size)}_t*>(this->regs_base_ptr+arch::traits<eve_core>::reg_byte_offsets[arch::traits<eve_core>::${k}0]);<% }else{ %> 
+          uint${nativeTypeSize(v.type.size)}_t* ${k} = reinterpret_cast<uint${nativeTypeSize(v.type.size)}_t*>(this->regs_base_ptr+arch::traits<eve_core>::reg_byte_offsets[arch::traits<eve_core>::${k}]);<%}}%>
+          *NEXT_PC = *PC + ${instr.length/8};
+          <%instr.behavior.eachLine{%>
+          ${it}<%}%>
+          break;
+      }<%}%>
     default: {
       CPPLOG(ERR) << "Illegal Instruction, stopping";
       throw simulation_stopped(1);

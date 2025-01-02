@@ -24,8 +24,24 @@ void eve_out(int port, int val) {
   CPPLOG(INFO) << "I/O Port " << std::hex << "0x" << port << std::dec
                << " sent: " << val;
 }
-void eve_in(){
 
+uint8_t eve_in(){
+    int temp;
+    while (true) {
+        CPPLOG(INFO) << "Enter a number (0-255) to send via I/O Port 0: ";
+        std::cin >> temp;
+        if (std::cin.eof()) {
+            CPPLOG(ERR) << "\nEnd of input detected. Exiting...";
+            std::exit(1);
+        }
+        if (std::cin.fail() || temp < 0 || temp > 255) {
+            std::cin.clear(); // Clear error flag
+            std::cin.ignore(std::numeric_limits<std::streamsize>::max(), '\n'); // Discard invalid input
+            CPPLOG(ERR) << "Invalid input. Please try again.";
+        } else {
+            return static_cast<std::uint8_t>(temp);
+        }
+    }
 }
 
 debugger::target_adapter_if *
@@ -676,11 +692,12 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start,
               std::string mnemonic = "in";
               this->core.disass_output(*PC, mnemonic);
           }
-          
+           
+          uint8_t* A = reinterpret_cast<uint8_t*>(this->regs_base_ptr+arch::traits<eve_core>::reg_byte_offsets[arch::traits<eve_core>::A]);
           *NEXT_PC = *PC + 2;
           
           {
-                          eve_in();
+                          *A = eve_in();
                       }
           break;
       }

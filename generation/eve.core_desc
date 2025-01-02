@@ -25,7 +25,7 @@ Core eve_core{
 
     functions{
         extern void eve_out(unsigned<8> port, unsigned<8> val);
-        extern void eve_in();
+        extern unsigned<8> eve_in();
         void set_SN_ZE(unsigned<8> res){
             SN = (res & 0x80) != 0;
             ZE = res == 0;
@@ -309,7 +309,7 @@ Core eve_core{
 
         IN {
             encoding: 8'b11000101 :: port[7:0];
-            behavior: eve_in();
+            behavior: A = eve_in();
         }
 
         OUT {

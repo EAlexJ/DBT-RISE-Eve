@@ -17,8 +17,8 @@ struct eve_vm : public iss::interp::vm_base<eve_core> {
     using ARCH = eve_core;
     
     void set_SN_ZE(uint8_t res){
-        auto* SN = reinterpret_cast<uint8_t*>(this->regs_base_ptr+iss::arch::traits<ARCH>::reg_byte_offsets[iss::arch::traits<ARCH>::SN]); 
-        auto* ZE = reinterpret_cast<uint8_t*>(this->regs_base_ptr+iss::arch::traits<ARCH>::reg_byte_offsets[iss::arch::traits<ARCH>::ZE]); 
+        auto* SN = reinterpret_cast<uint8_t*>(this->regs_base_ptr+::iss::arch::traits<ARCH>::reg_byte_offsets[::iss::arch::traits<ARCH>::SN]); 
+        auto* ZE = reinterpret_cast<uint8_t*>(this->regs_base_ptr+::iss::arch::traits<ARCH>::reg_byte_offsets[::iss::arch::traits<ARCH>::ZE]); 
         *SN = (res & 128) != 0;
         *ZE = res == 0;
     }

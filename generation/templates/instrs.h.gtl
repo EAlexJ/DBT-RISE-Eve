@@ -4,9 +4,8 @@
 #include <core.h>
 #include <iss/instruction_decoder.h>
 
-using op = iss::arch::traits<eve_core>::opcode_e;
-static constexpr std::array<iss::generic_instruction_descriptor, ${instructions.size()}> eve_instr_info{{
+constexpr std::array<iss::generic_instruction_descriptor, ${instructions.size()}> eve_instr_info{{
         <%instructions.each{instr -> %>
-        {${instr.encoding}, ${instr.mask}, op::${instr.instruction.name}},<%}%>
+        {${instr.encoding}, ${instr.mask}, iss::arch::traits<eve_core>::opcode_e::${instr.instruction.name}},<%}%>
     }};
 #endif

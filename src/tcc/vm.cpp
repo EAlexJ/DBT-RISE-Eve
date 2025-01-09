@@ -40,8 +40,7 @@ continuation_e eve_vm::gen_single_inst_behavior(virt_addr_t &pc_v,
     uint8_t regS = bit_sub<3, 3>(opcode);
     uint8_t regD = bit_sub<0, 3>(opcode);
     tu("//MOV");
-    tu.store(regD,
-             tu.ext((tu.add(tu.load(regD, 0), tu.load(regS, 0))), 32, false));
+    tu.store(regD, tu.load(regS, 0));
     pc_v = pc_v + 1;
     return_val = continuation_e::CONT;
     break;

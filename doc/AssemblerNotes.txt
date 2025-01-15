@@ -1,0 +1,54 @@
+Assembler Notes
+===============
+
+Harry Porter - 29 April 2024
+
+The assembler is a program named "asm8.c". It can be compiled with a line such as:
+     gcc -std=c99 -Wall -O2 asm8.c -o asm8
+
+You may wish to modify your shell's "path" to include the directory in which you place
+the executable. This allows you to type "asm8" instead of "./asm8".
+
+The assembler has been tested on:
+    Mac OSX (with Xcode)
+    Windows 10 (with Visual Studio)
+
+The assembler includes the following:
+    #include <stdlib.h>
+    #include <stdio.h>
+    #include <string.h>
+    #include <errno.h>
+Since the assembler does not use any other files, it should be straightforward to compile.
+
+EveCore does not use a "link" stage, so there is no "linker" program.
+
+The assembler output can be in any of these formats, as selected on the command line:
+    -hex1    Raw bytes                  one byte per line, nothing else
+    -hex2    Raw bytes                  with source included as comments
+    -l       Listing format             which is easiest for humans to read
+    -sv      Legal Verilog statements   which can be inserted into a Verilog module
+All output formats are text files, not binary files.
+
+Command line options:
+  -h
+      Help info about the command line
+  -h2
+      Help info about the syntax accepted
+  filename
+      Input source (typically ending in ".s")
+  -o filename
+      Name of output file to be produced
+  -hex1
+  -hex2
+  -l
+  -sv
+      Format of output (default is -hex1)
+  -w
+      Suppress warnings
+
+Documentation about the assembly language syntax is contained directly within
+the assembler itself and can be printed with this command line:
+  asm8 -h2
+
+You may freely use, share, and update asm8.c, as long as you respect
+the comments at the beginning of asm8.c.

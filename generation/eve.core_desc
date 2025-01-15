@@ -224,7 +224,7 @@ Core eve_core{
         }
 
         SHR {
-            encoding: 8'b10111101;
+            encoding: 8'b10111100;
             behavior: {
                 unsigned<8> res = A >> 1;
                 SN = 0;

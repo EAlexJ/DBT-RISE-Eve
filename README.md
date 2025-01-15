@@ -25,6 +25,8 @@ Step-by-step instructions on how to set up the project:
 4. Use python to create a venv: `python3 -m venv .venv && source .venv/bin/activate`
 5. Install conan and cmake: `pip install conan cmake`
 6. Build the project using the CMakePresets: `cmake --preset Debug && cmake --build build/Debug -j`
+7. Optionally, to build the assembler simply call `cmake --build build/Debug --target asm8`
+8. Built targets can now be found in the `build/Debug` folder
 
 ## Usage
 

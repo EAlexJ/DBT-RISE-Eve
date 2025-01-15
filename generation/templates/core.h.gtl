@@ -33,6 +33,9 @@ def byteSize(int size){
 
 struct eve_core;
 template <> struct iss::arch::traits<eve_core> {
+  static constexpr std::array<const char*, ${registers.size()}> reg_aliases{
+      {"${registers.collect{it.alias.toUpperCase()}.join('", "')}"}};
+
   enum reg_e {
     ${registers.collect{it.name}.join(', ')},
     ICOUNT,

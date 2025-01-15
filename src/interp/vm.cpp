@@ -3,11 +3,15 @@
 #include <cassert>
 #include <core.h>
 #include <cstdint>
+#include <fmt/core.h>
 #include <instrs.h>
 #include <iostream>
 #include <iss/interp/vm_base.h>
 #include <iss/vm_if.h>
 #include <iss/vm_types.h>
+#include <sstream>
+#include <string>
+#include <unordered_map>
 #include <util/logging.h>
 #include <vm.h>
 
@@ -19,6 +23,74 @@ using traits = arch::traits<eve_core>;
 struct memory_access_exception : public std::exception {
   memory_access_exception() {}
 };
+
+inline const char *name(size_t index){return traits::reg_aliases.at(index);}
+inline const char* add16_asm(uint8_t regS, uint8_t regD, uint16_t imm) {
+    static const std::string registers[] = {"XY", "M", "<zero>", "A"};
+    std::ostringstream asmBuilder;
+    if (regS == 2) { 
+        asmBuilder << registers[regD] << " = 0x" << std::hex << imm;
+    } else {
+        asmBuilder << registers[regD] << " = " << registers[regS];
+        if (imm != 0) {
+            asmBuilder << " + 0x" << std::hex << imm;
+        }
+    }
+    static std::string result;
+    result = asmBuilder.str();
+    return result.c_str();
+}
+inline const char* ldm_asm(uint16_t imm) {
+    std::ostringstream asmBuilder;
+    if (imm == 0) {
+        asmBuilder << "[M] = A";
+    } else {
+        asmBuilder << "[M + 0x" << std::hex << imm << "] = A";
+    }
+    static std::string result;
+    result = asmBuilder.str();
+    return result.c_str();
+}
+inline const char *stm_asm(uint16_t imm){
+    std::ostringstream asmBuilder;
+    if (imm == 0) {
+        asmBuilder << "A = [M]";
+    } else {
+        asmBuilder << "A = [M + 0x" << std::hex << imm << "]";
+    }
+    static std::string result;
+    result = asmBuilder.str();
+    return result.c_str();
+}
+inline const char* branch_asm(uint8_t cond, uint16_t addr) {
+    static const std::unordered_map<uint8_t, std::string> conditionMap = {
+        {0b0000, "=="},
+        {0b0001, "!="},
+        {0b0010, "<"},
+        {0b0011, "<="},
+        {0b0100, ">"},
+        {0b0101, ">="},
+        {0b0110, "<u"},
+        {0b0111, "<=u"},
+        {0b1000, ">u"},
+        {0b1001, ">=u"},
+        {0b1010, "!SN"},
+        {0b1011, "SN"},
+        {0b1100, "!OV"},
+        {0b1101, "OV"},
+        {0b1110, "1"}, // branch always taken
+    };
+    auto it = conditionMap.find(cond);
+    std::ostringstream asmBuilder;
+    if (it != conditionMap.end() && cond != 0b1110) {
+        asmBuilder << "if " << it->second << " goto " << "0x" << std::hex << addr;
+    } else {
+        asmBuilder << "goto " << "0x" << std::hex << addr;
+    }
+    static std::string result;
+    result = asmBuilder.str();
+    return result.c_str();
+}
 
 void eve_out(int port, int val) {
   CPPLOG(INFO) << "I/O Port " << std::hex << "0x" << port << std::dec
@@ -87,9 +159,9 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
                 uint8_t regD = ((bit_sub<0,3>(instr)));
                 uint8_t regS = ((bit_sub<3,3>(instr)));
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "mov";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} {regD} = {regS}", fmt::arg("mnemonic", "mov"),
+                        fmt::arg("regD", name(regD)), fmt::arg("regS", name(regS)));
                     this->core.disass_output(*PC, mnemonic);
                 }
                 
@@ -105,9 +177,9 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
                 uint16_t imm = ((bit_sub<0,16>(instr)));
                 uint8_t reg = ((bit_sub<16,3>(instr)));
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "ld";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} {reg} = [{imm:#0x}]", fmt::arg("mnemonic", "ld"),
+                        fmt::arg("reg", name(reg)), fmt::arg("imm", imm));
                     this->core.disass_output(*PC, mnemonic);
                 }
                 
@@ -125,9 +197,9 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
                 uint16_t imm = ((bit_sub<0,16>(instr)));
                 uint8_t reg = ((bit_sub<16,3>(instr)));
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "st";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} [{imm:#0x}] = {reg}", fmt::arg("mnemonic", "st"),
+                        fmt::arg("imm", imm), fmt::arg("reg", name(reg)));
                     this->core.disass_output(*PC, mnemonic);
                 }
                 
@@ -143,9 +215,9 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             case op::PUSH: {
                 uint8_t reg = ((bit_sub<0,3>(instr)));
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "push";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} push {reg}", fmt::arg("mnemonic", "push"),
+                        fmt::arg("reg", name(reg)));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -163,9 +235,9 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             case op::POP: {
                 uint8_t reg = ((bit_sub<0,3>(instr)));
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "pop";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} pop {reg}", fmt::arg("mnemonic", "pop"),
+                        fmt::arg("reg", name(reg)));
                     this->core.disass_output(*PC, mnemonic);
                 }
                 
@@ -185,9 +257,9 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
                 uint8_t imm = ((bit_sub<0,8>(instr)));
                 uint8_t reg = ((bit_sub<8,3>(instr)));
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "movi";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} {reg} = {imm:#0x}", fmt::arg("mnemonic", "movi"),
+                        fmt::arg("reg", name(reg)), fmt::arg("imm", imm));
                     this->core.disass_output(*PC, mnemonic);
                 }
                 
@@ -204,9 +276,9 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
                 uint8_t regD = ((bit_sub<16,1>(instr)));
                 uint8_t regS = ((bit_sub<17,2>(instr)));
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "add16";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} {regS}", fmt::arg("mnemonic", "add16"),
+                        fmt::arg("regS", add16_asm(regS, regD, imm)));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -220,11 +292,11 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
                 {
                     uint16_t res = imm;
                     if(regS == 0) {
-                        res = (uint16_t)((uint32_t)(imm ) + (uint32_t)(((*X<<8)|*Y) ));
+                        res = (uint16_t)((uint32_t)(imm ) + (uint32_t)((((uint16_t)*X<<8)|*Y) ));
                     }
                     else {
                         if(regS == 1) {
-                            res = (uint16_t)((uint32_t)(imm ) + (uint32_t)(((*M1<<8)|*M2) ));
+                            res = (uint16_t)((uint32_t)(imm ) + (uint32_t)((((uint16_t)*M1<<8)|*M2) ));
                         }
                         else {
                             if(regS == 3) {
@@ -247,9 +319,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::AND: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "and";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} A = A & B", fmt::arg("mnemonic", "and"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -270,9 +341,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::OR: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "or";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} A = A | B", fmt::arg("mnemonic", "or"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -293,9 +363,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::XOR: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "xor";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} A = A ^ B", fmt::arg("mnemonic", "xor"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -316,9 +385,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::NOT: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "not";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} A = !A", fmt::arg("mnemonic", "not"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -338,9 +406,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::ADD: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "add";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} A = A + B", fmt::arg("mnemonic", "add"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -361,9 +428,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::ADDC: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "addc";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} A = A + B + CY", fmt::arg("mnemonic", "addc"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -384,9 +450,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::SUB: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "sub";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} A = A - B", fmt::arg("mnemonic", "sub"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -407,9 +472,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::SUBC: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "subc";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} A = A - B - CY", fmt::arg("mnemonic", "subc"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -430,9 +494,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::NEG: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "neg";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} A = -A", fmt::arg("mnemonic", "neg"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -452,9 +515,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::CLR: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "clr";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} A = 0", fmt::arg("mnemonic", "clr"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -476,9 +538,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::SHL: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "shl";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} A = A << 1", fmt::arg("mnemonic", "shl"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -498,9 +559,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::SHRC: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "shrc";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} A = A >>> 1", fmt::arg("mnemonic", "shrc"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -510,7 +570,7 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
                 *NEXT_PC = *PC + 1;
                 
                 {
-                    uint16_t res = ((*CY<<8)|*A) >> 1;
+                    uint16_t res = (((uint16_t)*CY<<8)|*A) >> 1;
                     set_SN_ZE((uint8_t)res);
                     *CY = (uint8_t)*A;
                     *OV = 0;
@@ -520,9 +580,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::SHR: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "shr";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} A = A >> 1", fmt::arg("mnemonic", "shr"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -545,9 +604,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::INCR: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "incr";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} A = A + 1", fmt::arg("mnemonic", "incr"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -567,9 +625,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::DEC: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "dec";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} A = A - 1", fmt::arg("mnemonic", "dec"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -590,9 +647,9 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             case op::LDSP: {
                 uint16_t imm = ((bit_sub<0,16>(instr)));
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "ldsp";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} SP = {imm:#0x}", fmt::arg("mnemonic", "ldsp"),
+                        fmt::arg("imm", imm));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -606,9 +663,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::LDCODE: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "ldcode";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} A = code[XY]", fmt::arg("mnemonic", "ldcode"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -618,7 +674,7 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
                 *NEXT_PC = *PC + 1;
                 
                 {
-                    uint16_t read_addr = (*X<<8)|*Y;
+                    uint16_t read_addr = ((uint16_t)*X<<8)|*Y;
                     uint8_t res_15 = super::template read_mem<uint8_t>(traits::IMEM, read_addr);
                     if(this->core.reg.trap_state>=0x80000000UL) throw memory_access_exception();
                     *A = res_15;
@@ -627,9 +683,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::GOTOXY: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "gotoxy";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} goto XY", fmt::arg("mnemonic", "gotoxy"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -638,7 +693,7 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
                 *NEXT_PC = *PC + 1;
                 
                 {
-                                *NEXT_PC = (*X<<8)|*Y;
+                                *NEXT_PC = ((uint16_t)*X<<8)|*Y;
                                 this->core.reg.last_branch = 1;
                             }
                 break;
@@ -646,9 +701,9 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             case op::CALL: {
                 uint16_t addr = ((bit_sub<0,16>(instr)));
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "call";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} call {addr:#0x}", fmt::arg("mnemonic", "call"),
+                        fmt::arg("addr", addr));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -669,9 +724,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::RET: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "ret";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} ret", fmt::arg("mnemonic", "ret"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -686,7 +740,7 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
                     if(this->core.reg.trap_state>=0x80000000UL) throw memory_access_exception();
                     uint8_t lsb_addr = res_17;
                     *SP = (uint16_t)((uint32_t)(*SP ) + (uint32_t)(2 ));
-                    *NEXT_PC = (msb_addr<<8)|lsb_addr;
+                    *NEXT_PC = ((uint16_t)msb_addr<<8)|lsb_addr;
                     this->core.reg.last_branch = 1;
                 }
                 break;
@@ -694,9 +748,9 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             case op::IN: {
                 uint8_t port = ((bit_sub<0,8>(instr)));
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "in";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} A = in {port:#0x}", fmt::arg("mnemonic", "in"),
+                        fmt::arg("port", port));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -711,9 +765,9 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             case op::OUT: {
                 uint8_t port = ((bit_sub<0,8>(instr)));
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "out";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} out {port:#0x} = A", fmt::arg("mnemonic", "out"),
+                        fmt::arg("port", port));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -728,9 +782,9 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             case op::LDM: {
                 uint16_t imm = ((bit_sub<0,16>(instr)));
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "ldm";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} {imm}", fmt::arg("mnemonic", "ldm"),
+                        fmt::arg("imm", ldm_asm(imm)));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -740,7 +794,7 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
                 *NEXT_PC = *PC + 3;
                 
                 {
-                    uint16_t read_addr = (uint16_t)((uint32_t)(((*M1<<8)|*M2) ) + (uint32_t)(imm ));
+                    uint16_t read_addr = (uint16_t)((uint32_t)((((uint16_t)*M1<<8)|*M2) ) + (uint32_t)(imm ));
                     uint8_t res_18 = super::template read_mem<uint8_t>(traits::DMEM, read_addr);
                     if(this->core.reg.trap_state>=0x80000000UL) throw memory_access_exception();
                     *A = res_18;
@@ -750,9 +804,9 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             case op::STM: {
                 uint16_t imm = ((bit_sub<0,16>(instr)));
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "stm";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} {imm}", fmt::arg("mnemonic", "stm"),
+                        fmt::arg("imm", stm_asm(imm)));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -762,7 +816,7 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
                 *NEXT_PC = *PC + 3;
                 
                 {
-                    uint16_t write_addr = (uint16_t)((uint32_t)(((*M1<<8)|*M2) ) + (uint32_t)(imm ));
+                    uint16_t write_addr = (uint16_t)((uint32_t)((((uint16_t)*M1<<8)|*M2) ) + (uint32_t)(imm ));
                     super::template write_mem<uint8_t>(traits::DMEM, write_addr, *A);
                     if(this->core.reg.trap_state>=0x80000000UL) throw memory_access_exception();
                 }
@@ -770,9 +824,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::CMP: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "cmp";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} cmp A : B", fmt::arg("mnemonic", "cmp"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -794,9 +847,9 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
                 uint16_t addr = ((bit_sub<0,16>(instr)));
                 uint8_t cond = ((bit_sub<16,4>(instr)));
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "branch";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} {cond}", fmt::arg("mnemonic", "branch"),
+                        fmt::arg("cond", branch_asm(cond, addr)));
                     this->core.disass_output(*PC, mnemonic);
                 }
                  
@@ -928,9 +981,8 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
             }
             case op::NOP: {
                 if(this->disass_enabled){
-                    
-                    //No disass specified, using instruction name
-                    std::string mnemonic = "nop";
+                    auto mnemonic = fmt::format(
+                        "{mnemonic:10} nop", fmt::arg("mnemonic", "nop"));
                     this->core.disass_output(*PC, mnemonic);
                 }
                 

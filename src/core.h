@@ -10,6 +10,9 @@
 
 struct eve_core;
 template <> struct iss::arch::traits<eve_core> {
+  static constexpr std::array<const char*, 15> reg_aliases{
+      {"A", "B", "C", "D", "X", "Y", "M1", "M2", "PC", "NEXT_PC", "SP", "CY", "SN", "ZE", "OV"}};
+
   enum reg_e {
     REG0, REG1, REG2, REG3, REG4, REG5, REG6, REG7, PC, NEXT_PC, SP, FLAGS0, FLAGS1, FLAGS2, FLAGS3,
     ICOUNT,

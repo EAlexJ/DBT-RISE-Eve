@@ -7,11 +7,15 @@ def nativeTypeSize(int size){
 #include <cassert>
 #include <core.h>
 #include <cstdint>
+#include <fmt/core.h>
 #include <instrs.h>
 #include <iostream>
 #include <iss/interp/vm_base.h>
 #include <iss/vm_if.h>
 #include <iss/vm_types.h>
+#include <sstream>
+#include <string>
+#include <unordered_map>
 #include <util/logging.h>
 #include <vm.h>
 
@@ -23,6 +27,74 @@ using traits = arch::traits<eve_core>;
 struct memory_access_exception : public std::exception {
   memory_access_exception() {}
 };
+
+inline const char *name(size_t index){return traits::reg_aliases.at(index);}
+inline const char* add16_asm(uint8_t regS, uint8_t regD, uint16_t imm) {
+    static const std::string registers[] = {"XY", "M", "<zero>", "A"};
+    std::ostringstream asmBuilder;
+    if (regS == 2) { 
+        asmBuilder << registers[regD] << " = 0x" << std::hex << imm;
+    } else {
+        asmBuilder << registers[regD] << " = " << registers[regS];
+        if (imm != 0) {
+            asmBuilder << " + 0x" << std::hex << imm;
+        }
+    }
+    static std::string result;
+    result = asmBuilder.str();
+    return result.c_str();
+}
+inline const char* ldm_asm(uint16_t imm) {
+    std::ostringstream asmBuilder;
+    if (imm == 0) {
+        asmBuilder << "[M] = A";
+    } else {
+        asmBuilder << "[M + 0x" << std::hex << imm << "] = A";
+    }
+    static std::string result;
+    result = asmBuilder.str();
+    return result.c_str();
+}
+inline const char *stm_asm(uint16_t imm){
+    std::ostringstream asmBuilder;
+    if (imm == 0) {
+        asmBuilder << "A = [M]";
+    } else {
+        asmBuilder << "A = [M + 0x" << std::hex << imm << "]";
+    }
+    static std::string result;
+    result = asmBuilder.str();
+    return result.c_str();
+}
+inline const char* branch_asm(uint8_t cond, uint16_t addr) {
+    static const std::unordered_map<uint8_t, std::string> conditionMap = {
+        {0b0000, "=="},
+        {0b0001, "!="},
+        {0b0010, "<"},
+        {0b0011, "<="},
+        {0b0100, ">"},
+        {0b0101, ">="},
+        {0b0110, "<u"},
+        {0b0111, "<=u"},
+        {0b1000, ">u"},
+        {0b1001, ">=u"},
+        {0b1010, "!SN"},
+        {0b1011, "SN"},
+        {0b1100, "!OV"},
+        {0b1101, "OV"},
+        {0b1110, "1"}, // branch always taken
+    };
+    auto it = conditionMap.find(cond);
+    std::ostringstream asmBuilder;
+    if (it != conditionMap.end() && cond != 0b1110) {
+        asmBuilder << "if " << it->second << " goto " << "0x" << std::hex << addr;
+    } else {
+        asmBuilder << "goto " << "0x" << std::hex << addr;
+    }
+    static std::string result;
+    result = asmBuilder.str();
+    return result.c_str();
+}
 
 void eve_out(int port, int val) {
   CPPLOG(INFO) << "I/O Port " << std::hex << "0x" << port << std::dec
@@ -89,8 +161,7 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
         switch (instr_index) {<%instructions.eachWithIndex{instr, idx -> %>
             case op::${instr.name}: {
                 <%instr.fields.eachLine{%>${it}
-                <%}%>if(this->disass_enabled){
-                    <%instr.disass.eachLine{%>
+                <%}%>if(this->disass_enabled){<%instr.disass.eachLine{%>
                     ${it}<%}%>
                     this->core.disass_output(*PC, mnemonic);
                 }

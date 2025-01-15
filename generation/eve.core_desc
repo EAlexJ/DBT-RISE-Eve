@@ -35,21 +35,25 @@ Core eve_core{
     instructions {
         MOV {
             encoding: 2'b01 :: regS[2:0] :: regD[2:0];
+            assembly: "{name(regD)} = {name(regS)}";
             behavior: REG[regD] = REG[regS];
         }
 
         LD {
             encoding: 5'b10000 :: reg[2:0] :: imm[15:0];
+            assembly: "{name(reg)} = [{imm:#0x}]";
             behavior: REG[reg] = DMEM[imm];
         }
 
         ST {
             encoding: 5'b10001 :: reg[2:0] :: imm[15:0];
+            assembly: "[{imm:#0x}] = {name(reg)}";
             behavior: DMEM[imm]  = REG[reg]; 
         }
 
         PUSH {
             encoding: 5'b10010 :: reg[2:0];
+            assembly: "push {name(reg)}";
             behavior: {
                 SP = (unsigned<16>)(SP - 1);
                 DMEM[SP] = REG[reg];
@@ -58,6 +62,7 @@ Core eve_core{
 
         POP {
             encoding: 5'b10011 :: reg[2:0];
+            assembly: "pop {name(reg)}";
             behavior: {
                 REG[reg] = DMEM[SP];
                 SP = (unsigned<16>)(SP + 1);
@@ -65,11 +70,13 @@ Core eve_core{
         }
         MOVI {
             encoding: 5'b10100 :: reg[2:0] :: imm[7:0];
+            assembly: "{name(reg)} = {imm:#0x}";
             behavior: REG[reg] = imm;
         }
 
         ADD16 {
             encoding: 5'b10101 :: regS[1:0] :: regD[0:0] :: imm[15:0];
+            assembly: "{add16_asm(regS, regD, imm)}";
             behavior: {
                 unsigned<16> res = imm;
                 if(regS == 2'b00)
@@ -91,6 +98,7 @@ Core eve_core{
 
         AND {
             encoding: 8'b10110000;
+            assembly: "A = A & B";
             behavior: {
                 unsigned<8> res = A & B;
                 set_SN_ZE(res);
@@ -102,6 +110,7 @@ Core eve_core{
 
         OR {
             encoding: 8'b10110001;
+            assembly: "A = A | B";
             behavior: {
                 unsigned<8> res = A | B;
                 set_SN_ZE(res);
@@ -113,6 +122,7 @@ Core eve_core{
 
         XOR {
             encoding: 8'b10110010;
+            assembly: "A = A ^ B";
             behavior: {
                 unsigned<8> res = A ^ B;
                 set_SN_ZE(res);
@@ -124,6 +134,7 @@ Core eve_core{
 
         NOT {
             encoding: 8'b10110011;
+            assembly: "A = !A";
             behavior: {
                 unsigned<8> res = !A;
                 set_SN_ZE(res);
@@ -135,6 +146,7 @@ Core eve_core{
 
         ADD {
             encoding: 8'b10110100;
+            assembly: "A = A + B";
             behavior: {
                 unsigned<9> res = A + B;
                 set_SN_ZE((unsigned<8>)res);
@@ -147,6 +159,7 @@ Core eve_core{
 
         ADDC {
             encoding: 8'b10110101;
+            assembly: "A = A + B + CY";
             behavior: {
                 unsigned<10> res = A + B + CY;
                 set_SN_ZE((unsigned<8>)res);
@@ -159,6 +172,7 @@ Core eve_core{
 
         SUB {
             encoding: 8'b10110110;
+            assembly: "A = A - B";
             behavior: {
                 signed<9> res = A - B;
                 set_SN_ZE((unsigned<8>)res);
@@ -170,6 +184,7 @@ Core eve_core{
 
         SUBC {
             encoding: 8'b10110111;
+            assembly: "A = A - B - CY";
             behavior: {
                 signed<10> res = A - B - CY;
                 set_SN_ZE((unsigned<8>)res);
@@ -181,6 +196,7 @@ Core eve_core{
 
         NEG {
             encoding: 8'b10111000;
+            assembly: "A = -A";
             behavior: {
                 signed<9> res = -A;
                 set_SN_ZE((unsigned<8>)res);
@@ -192,6 +208,7 @@ Core eve_core{
 
         CLR {
             encoding: 8'b10111001;
+            assembly: "A = 0";
             behavior: {
                 SN = 0;
                 ZE = 1;
@@ -203,6 +220,7 @@ Core eve_core{
 
         SHL {
             encoding: 8'b10111010;
+            assembly: "A = A << 1";
             behavior: {
                 unsigned<9> res = A << 1;
                 set_SN_ZE((unsigned<8>)res);
@@ -214,6 +232,7 @@ Core eve_core{
 
         SHLC {
             encoding: 8'b10111011;
+            assembly: "A = A <<< 1";
             behavior: {
                 unsigned<9> res = A :: CY;
                 set_SN_ZE((unsigned<8>)res);
@@ -225,6 +244,7 @@ Core eve_core{
 
         SHR {
             encoding: 8'b10111100;
+            assembly: "A = A >> 1";
             behavior: {
                 unsigned<8> res = A >> 1;
                 SN = 0;
@@ -237,6 +257,7 @@ Core eve_core{
 
         SHRC {
             encoding: 8'b10111011;
+            assembly: "A = A >>> 1";
             behavior: {
                 unsigned<9> res = (CY :: A) >> 1;
                 set_SN_ZE((unsigned<8>)res);
@@ -248,6 +269,7 @@ Core eve_core{
 
         INCR {
             encoding: 8'b10111110;
+            assembly: "A = A + 1";
             behavior: {
                 unsigned<9> res = A + 1;
                 set_SN_ZE((unsigned<8>)res);
@@ -259,6 +281,7 @@ Core eve_core{
 
         DEC {
             encoding: 8'b10111111;
+            assembly: "A = A - 1";
             behavior: {
                 signed<9> res = A - 1;
                 set_SN_ZE((unsigned<8>)res);
@@ -270,11 +293,13 @@ Core eve_core{
 
         LDSP {
             encoding: 8'b11000000 :: imm[15:0];
+            assembly: "SP = {imm:#0x}";
             behavior: SP = imm;
         }
 
         LDCODE {
             encoding: 8'b11000001;
+            assembly: "A = code[XY]";     
             behavior: {
                 unsigned<16> read_addr = X :: Y;
                 A = IMEM[read_addr];
@@ -283,11 +308,13 @@ Core eve_core{
 
         GOTOXY {
             encoding: 8'b11000010;
+            assembly: "goto XY";
             behavior: PC = X :: Y;
         }
 
         CALL {
             encoding: 8'b11000011 :: addr[15:0];
+            assembly: "call {addr:#0x}";
             behavior: {
                 unsigned<16> ret_addr = (unsigned<16>)(PC + 1);
                 SP = (unsigned<16>)(SP - 2);
@@ -299,6 +326,7 @@ Core eve_core{
 
         RET {
             encoding: 8'b11000100;
+            assembly: "ret";
             behavior: {
                 unsigned<8> msb_addr = DMEM[SP];
                 unsigned<8> lsb_addr = DMEM[SP+1];
@@ -309,16 +337,19 @@ Core eve_core{
 
         IN {
             encoding: 8'b11000101 :: port[7:0];
+            assembly: "A = in {port:#0x}";
             behavior: A = eve_in();
         }
 
         OUT {
             encoding: 8'b11000110 :: port[7:0];
+            assembly: "out {port:#0x} = A";
             behavior: eve_out(port, A);
         }
         
         LDM {
             encoding: 8'b11000111 :: imm[15:0];
+            assembly: "{ldm_asm(imm)}";
             behavior: {
                 unsigned<16> read_addr = (unsigned<16>)((M1 :: M2) + imm);
                 A = DMEM[read_addr];
@@ -327,6 +358,7 @@ Core eve_core{
 
         STM {
             encoding: 8'b11001000 :: imm[15:0];
+            assembly: "{stm_asm(imm)}";
             behavior: {
                 unsigned<16> write_addr = (unsigned<16>)((M1 :: M2) + imm);
                 DMEM[write_addr] = A;                
@@ -335,6 +367,7 @@ Core eve_core{
 
         CMP {
             encoding: 8'b11001001;
+            assembly: "cmp A : B";
             behavior: {
                 signed<9> res = A - B;
                 set_SN_ZE((unsigned<8>)res);
@@ -345,6 +378,7 @@ Core eve_core{
 
         BRANCH {
             encoding: 4'b1101 :: cond[3:0] :: addr[15:0];
+            assembly: "{branch_asm(cond, addr)}";
             behavior: {
                 if(cond == 4'b0000){
                     if(ZE) PC = addr;
@@ -395,6 +429,7 @@ Core eve_core{
 
         NOP {
             encoding: 8'b00000000;
+            assembly: "nop";
             behavior: {}
         }
     }

@@ -1,5 +1,7 @@
+#include "iss/log_categories.h"
 #include <core.h>
 #include <filesystem>
+#include <fmt/format.h>
 #include <iss/arch/traits.h>
 #include <iss/vm_types.h>
 #include <util/logging.h>
@@ -87,4 +89,9 @@ status eve_core::write(const address_type type, const access_type access,
 iss::arch::traits<eve_core>::phys_addr_t
 eve_core::virt2phys(const iss::addr_t &addr) {
   return addr;
+};
+
+void eve_core::disass_output(uint64_t pc, const std::string instr) {
+  NSCLOG(INFO, logging::disass) << fmt::format("0x{:08x}    {:40} [i:0x{:x}]",
+                                               pc, instr, this->reg.ICOUNT);
 };

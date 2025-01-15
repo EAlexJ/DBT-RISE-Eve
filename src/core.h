@@ -112,5 +112,6 @@ struct eve_core : public iss::arch_if {
   inline uint64_t stop_code() { return exit_code; };
   uint64_t exit_code = 0;
   iss::arch::traits<eve_core>::phys_addr_t virt2phys(const iss::addr_t &addr);
+  void disass_output(uint64_t, const std::string ) override;
 };
 #endif

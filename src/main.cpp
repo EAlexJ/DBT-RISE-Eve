@@ -2,6 +2,7 @@
 #include <boost/program_options/value_semantic.hpp>
 #include <core.h>
 #include <iostream>
+#include <iss/log_categories.h>
 #include <string>
 #include <util/logging.h>
 #include <vm.h>
@@ -46,13 +47,18 @@ int main(int argc, char *argv[]) {
     return 1;
   }
   LOGGER(DEFAULT)::reporting_level() = logging::INFO;
+  LOGGER(DEFAULT)::print_time() = false;
   CPPLOG(INFO) << "Loading file '" << filename << "'";
   auto my_vm = eve_vm();
   auto [start_addr, success] = my_vm.get_arch()->load_file(filename);
   if (!success) {
     return 1;
   }
-  my_vm.setDisassEnabled(disass);
+  if (disass) {
+    my_vm.setDisassEnabled(disass);
+    LOGGER(disass)::reporting_level() = logging::INFO;
+    LOGGER(disass)::print_time() = false;
+  }
   my_vm.reset(start_addr);
   my_vm.start(icount, true);
   return 0;

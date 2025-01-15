@@ -2,10 +2,16 @@
 #define INSTRS_H
 #include <iss/arch/traits.h>
 #include <core.h>
-#include <iss/instruction_decoder.h>
 
-constexpr std::array<iss::generic_instruction_descriptor, ${instructions.size()}> eve_instr_info{{
+struct eve_instr_descriptor {
+    uint32_t encoding;
+    uint32_t mask;
+    uint32_t index;
+    uint8_t size;
+};
+
+constexpr std::array<eve_instr_descriptor, ${instructions.size()}> eve_instr_info{{
         <%instructions.each{instr -> %>
-        {${instr.encoding}, ${instr.mask}, iss::arch::traits<eve_core>::opcode_e::${instr.instruction.name}},<%}%>
+        {${instr.encoding}, ${instr.mask}, iss::arch::traits<eve_core>::opcode_e::${instr.instruction.name}, ${instr.length/8}},<%}%>
     }};
 #endif

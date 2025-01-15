@@ -16,4 +16,4 @@ target_include_directories(eve_sim_interp PRIVATE ${COMMON_INCLUDE_DIR} src/inte
 target_link_libraries(eve_sim_interp PRIVATE ${CONAN_LIBS} dbt-rise-core Boost::program_options)
 
 add_executable(asm8 EXCLUDE_FROM_ALL src/eve_assembler/asm8.c)
-target_compile_options(asm8 PRIVATE -std=c99 -Wall -O2)
+target_compile_options(asm8 PRIVATE -std=c99 -Wall -O2 -fsigned-char)

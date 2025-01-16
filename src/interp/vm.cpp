@@ -43,9 +43,9 @@ inline const char* add16_asm(uint8_t regS, uint8_t regD, uint16_t imm) {
 inline const char* ldm_asm(uint16_t imm) {
     std::ostringstream asmBuilder;
     if (imm == 0) {
-        asmBuilder << "[M] = A";
+        asmBuilder << "A = [M]";
     } else {
-        asmBuilder << "[M + 0x" << std::hex << imm << "] = A";
+        asmBuilder << "A = [M + 0x" << std::hex << imm << "]";
     }
     static std::string result;
     result = asmBuilder.str();
@@ -54,9 +54,9 @@ inline const char* ldm_asm(uint16_t imm) {
 inline const char *stm_asm(uint16_t imm){
     std::ostringstream asmBuilder;
     if (imm == 0) {
-        asmBuilder << "A = [M]";
+        asmBuilder << "[M] = A";
     } else {
-        asmBuilder << "A = [M + 0x" << std::hex << imm << "]";
+        asmBuilder << "[M + 0x" << std::hex << imm << "] = A";
     }
     static std::string result;
     result = asmBuilder.str();

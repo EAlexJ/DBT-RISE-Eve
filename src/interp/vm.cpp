@@ -1,4 +1,5 @@
 
+// clang-format off
 #include <array>
 #include <cassert>
 #include <core.h>
@@ -25,7 +26,7 @@ struct memory_access_exception : public std::exception {
 };
 
 inline const char *name(size_t index){return traits::reg_aliases.at(index);}
-inline const char* add16_asm(uint8_t regS, uint8_t regD, uint16_t imm) {
+inline const char *add16_asm(uint8_t regS, uint8_t regD, uint16_t imm) {
     static const std::string registers[] = {"XY", "M", "<zero>", "A"};
     std::ostringstream asmBuilder;
     if (regS == 2) { 
@@ -40,7 +41,7 @@ inline const char* add16_asm(uint8_t regS, uint8_t regD, uint16_t imm) {
     result = asmBuilder.str();
     return result.c_str();
 }
-inline const char* ldm_asm(uint16_t imm) {
+inline const char *ldm_asm(uint16_t imm) {
     std::ostringstream asmBuilder;
     if (imm == 0) {
         asmBuilder << "A = [M]";
@@ -62,7 +63,7 @@ inline const char *stm_asm(uint16_t imm){
     result = asmBuilder.str();
     return result.c_str();
 }
-inline const char* branch_asm(uint8_t cond, uint16_t addr) {
+inline const char *branch_asm(uint8_t cond, uint16_t addr) {
     static const std::unordered_map<uint8_t, std::string> conditionMap = {
         {0b0000, "=="},
         {0b0001, "!="},
@@ -187,9 +188,9 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
                 *NEXT_PC = *PC + 3;
                 
                 {
-                                uint8_t res_13 = super::template read_mem<uint8_t>(traits::DMEM, imm);
+                                uint8_t res_1 = super::template read_mem<uint8_t>(traits::DMEM, imm);
                                 if(this->core.reg.trap_state>=0x80000000UL) throw memory_access_exception();
-                                *(REG+reg) = res_13;
+                                *(REG+reg) = res_1;
                             }
                 break;
             }
@@ -246,9 +247,9 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
                 *NEXT_PC = *PC + 1;
                 
                 {
-                    uint8_t res_14 = super::template read_mem<uint8_t>(traits::DMEM, *SP);
+                    uint8_t res_2 = super::template read_mem<uint8_t>(traits::DMEM, *SP);
                     if(this->core.reg.trap_state>=0x80000000UL) throw memory_access_exception();
-                    *(REG+reg) = res_14;
+                    *(REG+reg) = res_2;
                     *SP = (uint16_t)((uint32_t)(*SP ) + (uint32_t)(1 ));
                 }
                 break;
@@ -675,9 +676,9 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
                 
                 {
                     uint16_t read_addr = ((uint16_t)*X<<8)|*Y;
-                    uint8_t res_15 = super::template read_mem<uint8_t>(traits::IMEM, read_addr);
+                    uint8_t res_3 = super::template read_mem<uint8_t>(traits::IMEM, read_addr);
                     if(this->core.reg.trap_state>=0x80000000UL) throw memory_access_exception();
-                    *A = res_15;
+                    *A = res_3;
                 }
                 break;
             }
@@ -733,12 +734,12 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
                 *NEXT_PC = *PC + 1;
                 
                 {
-                    uint8_t res_16 = super::template read_mem<uint8_t>(traits::DMEM, *SP);
+                    uint8_t res_4 = super::template read_mem<uint8_t>(traits::DMEM, *SP);
                     if(this->core.reg.trap_state>=0x80000000UL) throw memory_access_exception();
-                    uint8_t msb_addr = res_16;
-                    uint8_t res_17 = super::template read_mem<uint8_t>(traits::DMEM, (uint32_t)(*SP ) + (uint32_t)(1 ));
+                    uint8_t msb_addr = res_4;
+                    uint8_t res_5 = super::template read_mem<uint8_t>(traits::DMEM, (uint32_t)(*SP ) + (uint32_t)(1 ));
                     if(this->core.reg.trap_state>=0x80000000UL) throw memory_access_exception();
-                    uint8_t lsb_addr = res_17;
+                    uint8_t lsb_addr = res_5;
                     *SP = (uint16_t)((uint32_t)(*SP ) + (uint32_t)(2 ));
                     *NEXT_PC = ((uint16_t)msb_addr<<8)|lsb_addr;
                     this->core.reg.last_branch = 1;
@@ -795,9 +796,9 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
                 
                 {
                     uint16_t read_addr = (uint16_t)((uint32_t)((((uint16_t)*M1<<8)|*M2) ) + (uint32_t)(imm ));
-                    uint8_t res_18 = super::template read_mem<uint8_t>(traits::DMEM, read_addr);
+                    uint8_t res_6 = super::template read_mem<uint8_t>(traits::DMEM, read_addr);
                     if(this->core.reg.trap_state>=0x80000000UL) throw memory_access_exception();
-                    *A = res_18;
+                    *A = res_6;
                 }
                 break;
             }
@@ -1003,3 +1004,4 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
   }
   throw simulation_stopped(0);
 };
+// clang-format on

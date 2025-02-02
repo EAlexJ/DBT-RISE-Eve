@@ -93,9 +93,23 @@ inline const char *branch_asm(uint8_t cond, uint16_t addr) {
     return result.c_str();
 }
 
+std::string format_char(char c) {
+    switch (c) {
+        case '\n': return "\\n";
+        case '\t': return "\\t";
+        case '\r': return "\\r";
+        case '\0': return "\\0";
+        default:
+            if (std::isprint(static_cast<unsigned char>(c))) {
+                return std::string(1, c); // Printable character
+            } else {
+                return fmt::format("\\x{:02X}", static_cast<unsigned char>(c)); // Non-printable as hex
+            }
+    }
+}
+
 void eve_out(int port, int val) {
-  CPPLOG(INFO) << "I/O Port " << std::hex << "0x" << port << std::dec
-               << " sent: " << val;
+CPPLOG(INFO) << fmt::format("I/O Port 0x{0:X} sent: {1:>5}  (0x{1:02X})  ({2})", port, val, format_char(static_cast<char>(val)));
 }
 
 uint8_t eve_in(){
@@ -712,7 +726,7 @@ eve_vm::virt_addr_t eve_vm::execute_inst(finish_cond_e cond, virt_addr_t start, 
                 *NEXT_PC = *PC + 3;
                 
                 {
-                    uint16_t ret_addr = (uint16_t)((uint32_t)(*PC ) + (uint32_t)(1 ));
+                    uint16_t ret_addr = (uint16_t)((uint32_t)(*PC ) + (uint32_t)(3 ));
                     *SP = (uint16_t)((uint32_t)(*SP ) - (uint32_t)(2 ));
                     super::template write_mem<uint8_t>(traits::DMEM, *SP, (uint8_t)(ret_addr >> 8));
                     if(this->core.reg.trap_state>=0x80000000UL) throw memory_access_exception();

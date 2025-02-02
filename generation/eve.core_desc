@@ -316,7 +316,7 @@ Core eve_core{
             encoding: 8'b11000011 :: addr[15:0];
             assembly: "call {addr:#0x}";
             behavior: {
-                unsigned<16> ret_addr = (unsigned<16>)(PC + 1);
+                unsigned<16> ret_addr = (unsigned<16>)(PC + 3);
                 SP = (unsigned<16>)(SP - 2);
                 DMEM[SP] = (unsigned<8>)(ret_addr >> 8);
                 DMEM[SP+1] = (unsigned<8>)ret_addr;

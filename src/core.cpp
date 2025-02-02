@@ -40,6 +40,8 @@ std::pair<uint64_t, bool> eve_core::load_file(std::string name, int type) {
       while (filestream >> line) {
         try {
           Imem.at(linenumber) = std::stoi(line, nullptr, 16);
+          // also write to the data memory, in order to run programs which do not load ROM to RAM properly
+          Dmem.at(linenumber) = std::stoi(line, nullptr, 16);
         } catch (std::out_of_range) {
           CPPLOG(ERR) << "Access in file '" << name << "' at line "
                       << linenumber << " is out of range";
